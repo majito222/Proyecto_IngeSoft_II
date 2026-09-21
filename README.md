@@ -6,7 +6,16 @@ Basado en el student book "Software Modeling" (dominio: gestión de galpones,
 inventario, mortalidad y mantenimiento de una granja avícola) y en el
 `Plan_de_Requisitos_Galpon` (trazabilidad BR → StR → SyR → SWR).
 
-## Arquitectura
+Monorepo dividido en:
+
+```
+backend/   -> API REST en Spring Boot (arquitectura hexagonal)
+frontend/  -> Interfaz web en React + Vite
+```
+
+## Backend
+
+### Arquitectura
 
 Hexagonal (puertos y adaptadores). El paquete `domain` no depende de Spring
 ni de ningún framework; solo define modelo, políticas de negocio y puertos
@@ -14,7 +23,7 @@ ni de ningún framework; solo define modelo, políticas de negocio y puertos
 y expone la API REST.
 
 ```
-src/main/java/com/avimanager/
+backend/src/main/java/com/avimanager/
   domain/
     model/       -> entidades (Lote, Galpon, ReporteDiario, AlertaSanitaria...)
     policy/      -> reglas de negocio puras (RN-01, RN-07...)
@@ -33,7 +42,7 @@ Cambiar de persistencia en memoria a una base de datos real, o el canal de
 notificación por uno real, implica escribir un nuevo adaptador que implemente
 el puerto correspondiente — el dominio y los casos de uso no cambian.
 
-## Funcionalidades implementadas
+### Funcionalidades implementadas
 
 Trazabilidad con `Plan_de_Requisitos_Galpon_2026_v3.xlsx`:
 
@@ -50,13 +59,14 @@ Ambas comparten el mismo caso de uso (`CerrarTurnoUseCase` /
 `CerrarTurnoService`), tal como lo describe el flujo de negocio del student
 book: el registro de mortalidad es un subflujo del cierre de turno.
 
-## Ejecutar
+### Ejecutar
 
 ```bash
+cd backend
 mvn spring-boot:run
 ```
 
-## Probar la API
+### Probar la API
 
 Con la app corriendo (puerto 8080), hay un lote de demo precargado:
 `lote-1` (galpón `galpon-1`, población inicial del día = 500 aves).
@@ -85,9 +95,10 @@ curl -X POST http://localhost:8080/api/lotes/lote-1/turnos/cierre \
   -d '{"consumoAlimentoKg":45.0,"cantidadBajas":10,"causaProbableMortalidad":"enfermedad","produccionHuevosBandejas":12,"novedades":"brote sospechoso"}'
 ```
 
-## Pruebas
+### Pruebas
 
 ```bash
+cd backend
 mvn test
 ```
 
@@ -95,9 +106,20 @@ Las pruebas del dominio (`CerrarTurnoServiceTest`, `PoliticaMortalidadTest`)
 no levantan Spring: usan dobles de prueba simples de los puertos, lo que
 confirma que la lógica de negocio es independiente de la infraestructura.
 
-## Próximas funcionalidades (F-03 a F-08)
+### Próximas funcionalidades (F-03 a F-08)
 
 Cada nueva funcionalidad del `Plan_de_Requisitos_Galpon` se agrega como un
 nuevo caso de uso en `domain/port/in` + `domain/service`, reutilizando o
 extendiendo los puertos de salida existentes (o agregando nuevos) sin romper
 lo ya construido.
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Levanta en `http://localhost:5173` y consume la API del backend
+(`http://localhost:8080`) a través del proxy configurado en `vite.config.js`.
