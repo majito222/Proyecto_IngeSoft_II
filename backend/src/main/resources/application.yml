@@ -4,3 +4,10 @@ spring:
 
 server:
   port: 8080
+
+avimanager:
+  seguridad:
+    # Clave HMAC para firmar los JWT (minimo 32 caracteres). En produccion se
+    # define con la variable de entorno AVIMANAGER_JWT_SECRETO.
+    jwt-secreto: ${AVIMANAGER_JWT_SECRETO:clave-de-desarrollo-avimanager-cambiar-en-produccion}
+    jwt-duracion: 8h

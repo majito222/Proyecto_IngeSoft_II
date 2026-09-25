@@ -28,6 +28,16 @@ export function IconAlertas(props) {
   );
 }
 
+export function IconSalir(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3" />
+      <path d="M10 8l-4 4 4 4" />
+      <path d="M6 12h10" />
+    </svg>
+  );
+}
+
 export function IconMenu(props) {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>

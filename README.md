@@ -59,6 +59,27 @@ Ambas comparten el mismo caso de uso (`CerrarTurnoUseCase` /
 `CerrarTurnoService`), tal como lo describe el flujo de negocio del student
 book: el registro de mortalidad es un subflujo del cierre de turno.
 
+- **F-09 — Autenticar usuarios y gestionar roles**: login con contraseña
+  cifrada (BCrypt) que emite un token JWT con el rol y los permisos del
+  usuario. Todos los endpoints (excepto el login) exigen el token, y cada uno
+  se autoriza por permiso (`Permiso`): por ejemplo, solo el Operario y el
+  Administrador pueden cerrar un turno. El caso de uso (`IniciarSesionService`)
+  sigue la misma arquitectura hexagonal: BCrypt y JWT son adaptadores de los
+  puertos `CifradorContrasenaPort` y `GeneradorTokenPort`.
+
+| Rol | Permisos |
+|---|---|
+| Operario | Cerrar turno, ver lotes |
+| Administrador | Todos (incluye ajustar inventario, F-05) |
+| Veterinario | Ver alertas sanitarias, ver lotes |
+| Dueño | Ver alertas sanitarias, ver lotes |
+| Zootecnista | Ver lotes |
+| Técnico de mantenimiento | Ver lotes |
+
+Usuarios de demo (uno por rol): `operario`, `admin`, `veterinario`, `dueno`,
+`zootecnista`, `tecnico`. La contraseña es el usuario seguido de `123`
+(ej. `operario` / `operario123`).
+
 ### Ejecutar
 
 ```bash
@@ -71,10 +92,22 @@ mvn spring-boot:run
 Con la app corriendo (puerto 8080), hay un lote de demo precargado:
 `lote-1` (galpón `galpon-1`, población inicial del día = 500 aves).
 
+Primero inicia sesión (F-09) y guarda el token:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"operario","contrasena":"operario123"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
+```
+
+Sin token la API responde 401, y con un rol sin permiso (ej. `veterinario`)
+responde 403.
+
 Turno normal (cierra exitosamente):
 
 ```bash
 curl -X POST http://localhost:8080/api/lotes/lote-1/turnos/cierre \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"consumoAlimentoKg":45.0,"cantidadBajas":5,"causaProbableMortalidad":"jadeo","produccionHuevosBandejas":12,"novedades":"sin novedad"}'
 ```
@@ -83,6 +116,7 @@ Campos incompletos (F-01 / RN-05 — responde 422):
 
 ```bash
 curl -X POST http://localhost:8080/api/lotes/lote-1/turnos/cierre \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"cantidadBajas":3,"causaProbableMortalidad":"jadeo","produccionHuevosBandejas":10}'
 ```
@@ -91,6 +125,7 @@ Mortalidad crítica (F-02 / RN-01, RN-07 — responde 409, genera alerta y notif
 
 ```bash
 curl -X POST http://localhost:8080/api/lotes/lote-1/turnos/cierre \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"consumoAlimentoKg":45.0,"cantidadBajas":10,"causaProbableMortalidad":"enfermedad","produccionHuevosBandejas":12,"novedades":"brote sospechoso"}'
 ```

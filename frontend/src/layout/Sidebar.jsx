@@ -1,13 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { IconAlertas, IconCierre, IconLotes } from "../components/icons";
-
-const ITEMS = [
-  { to: "/", label: "Cierre de turno", icon: IconCierre, end: true },
-  { to: "/lotes", label: "Lotes y galpones", icon: IconLotes },
-  { to: "/alertas", label: "Alertas sanitarias", icon: IconAlertas },
-];
+import { useSesion } from "../auth/SesionContext";
+import { IconSalir } from "../components/icons";
+import { ITEMS_MENU } from "./menu";
 
 export default function Sidebar({ onNavigate }) {
+  const { usuario, tienePermiso, cerrarSesion } = useSesion();
+  const items = ITEMS_MENU.filter((item) => tienePermiso(item.permiso));
+
   return (
     <nav className="sidebar">
       <div className="sidebar__marca">
@@ -19,11 +18,10 @@ export default function Sidebar({ onNavigate }) {
       </div>
 
       <ul className="sidebar__lista">
-        {ITEMS.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, label, icon: Icon }) => (
           <li key={to}>
             <NavLink
               to={to}
-              end={end}
               onClick={onNavigate}
               className={({ isActive }) => "sidebar__link" + (isActive ? " sidebar__link--activo" : "")}
             >
@@ -33,6 +31,16 @@ export default function Sidebar({ onNavigate }) {
           </li>
         ))}
       </ul>
+
+      <div className="sidebar__usuario">
+        <div>
+          <strong>{usuario.nombreCompleto}</strong>
+          <small>{usuario.rolDescripcion}</small>
+        </div>
+        <button type="button" className="sidebar__salir" onClick={cerrarSesion} aria-label="Cerrar sesión" title="Cerrar sesión">
+          <IconSalir />
+        </button>
+      </div>
     </nav>
   );
 }

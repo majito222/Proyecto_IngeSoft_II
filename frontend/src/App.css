@@ -97,6 +97,80 @@
   }
 }
 
+.sidebar__usuario {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 10px 0;
+  border-top: 1px solid var(--borde);
+}
+
+.sidebar__usuario strong {
+  display: block;
+  font-size: 14px;
+}
+
+.sidebar__usuario small {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.sidebar__salir {
+  display: flex;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--texto-suave);
+}
+
+.sidebar__salir:hover {
+  background: var(--fondo);
+  color: var(--rojo);
+}
+
+/* --- Login --- */
+
+.login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.login__tarjeta {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login__marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.login__marca h1 {
+  color: var(--verde-oscuro);
+  font-size: 22px;
+  margin: 0;
+}
+
+.login__marca p {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.login__error {
+  color: var(--rojo);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
 /* --- Página --- */
 
 .pagina {

@@ -1,11 +1,16 @@
 package com.avimanager.infrastructure.config;
 
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
+import com.avimanager.domain.port.in.IniciarSesionUseCase;
 import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
+import com.avimanager.domain.port.out.CifradorContrasenaPort;
+import com.avimanager.domain.port.out.GeneradorTokenPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 import com.avimanager.domain.port.out.NotificadorAlertaSanitariaPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
+import com.avimanager.domain.port.out.UsuarioRepositoryPort;
 import com.avimanager.domain.service.CerrarTurnoService;
+import com.avimanager.domain.service.IniciarSesionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,5 +37,12 @@ public class UseCaseConfig {
                                                   Clock clock) {
         return new CerrarTurnoService(loteRepository, reporteDiarioRepository,
                 alertaSanitariaRepository, notificador, clock);
+    }
+
+    @Bean
+    public IniciarSesionUseCase iniciarSesionUseCase(UsuarioRepositoryPort usuarioRepository,
+                                                      CifradorContrasenaPort cifrador,
+                                                      GeneradorTokenPort generadorToken) {
+        return new IniciarSesionService(usuarioRepository, cifrador, generadorToken);
     }
 }

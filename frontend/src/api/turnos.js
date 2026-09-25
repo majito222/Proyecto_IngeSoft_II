@@ -1,12 +1,8 @@
-const BASE_URL = "/api";
+import { apiFetch } from "./cliente";
 
-export async function cerrarTurno(loteId, payload) {
-  const response = await fetch(`${BASE_URL}/lotes/${encodeURIComponent(loteId)}/turnos/cierre`, {
+export function cerrarTurno(loteId, payload) {
+  return apiFetch(`/lotes/${encodeURIComponent(loteId)}/turnos/cierre`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
-  const data = await response.json().catch(() => null);
-  return { status: response.status, data };
 }

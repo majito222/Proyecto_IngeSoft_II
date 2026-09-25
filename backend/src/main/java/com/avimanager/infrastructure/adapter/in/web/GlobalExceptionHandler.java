@@ -1,5 +1,6 @@
 package com.avimanager.infrastructure.adapter.in.web;
 
+import com.avimanager.domain.exception.CredencialesInvalidasException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LoteNoEncontradoException.class)
     public ResponseEntity<Map<String, String>> manejarLoteNoEncontrado(LoteNoEncontradoException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> manejarCredencialesInvalidas(CredencialesInvalidasException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("mensaje", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
