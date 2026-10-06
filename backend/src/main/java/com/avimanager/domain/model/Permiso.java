@@ -6,7 +6,9 @@ package com.avimanager.domain.model;
  * cambiar un rol no obligue a tocar cada controlador.
  */
 public enum Permiso {
+    INICIAR_TURNO,
     CERRAR_TURNO,
+    VER_TURNOS,
     VER_LOTES,
     VER_ALERTAS_SANITARIAS,
     AJUSTAR_INVENTARIO

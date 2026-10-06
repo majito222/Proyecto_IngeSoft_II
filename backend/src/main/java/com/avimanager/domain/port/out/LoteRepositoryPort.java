@@ -8,5 +8,8 @@ public interface LoteRepositoryPort {
 
     Optional<Lote> buscarPorId(String loteId);
 
+    /** Lote que aloja hoy el galpon (un galpon tiene un lote activo a la vez). */
+    Optional<Lote> buscarPorGalpon(String galponId);
+
     Lote guardar(Lote lote);
 }

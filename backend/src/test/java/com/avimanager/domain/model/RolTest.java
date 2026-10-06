@@ -24,4 +24,16 @@ class RolTest {
     void elVeterinarioPuedeVerAlertasSanitarias() {
         assertThat(Rol.VETERINARIO.tienePermiso(Permiso.VER_ALERTAS_SANITARIAS)).isTrue();
     }
+
+    @Test
+    void soloOperarioYAdministradorPuedenIniciarTurno_F10() {
+        assertThat(Arrays.stream(Rol.values()).filter(r -> r.tienePermiso(Permiso.INICIAR_TURNO)))
+                .containsExactlyInAnyOrder(Rol.OPERARIO, Rol.ADMINISTRADOR);
+    }
+
+    @Test
+    void soloElAdministradorVeElDashboardDeTurnos_F10() {
+        assertThat(Arrays.stream(Rol.values()).filter(r -> r.tienePermiso(Permiso.VER_TURNOS)))
+                .containsExactly(Rol.ADMINISTRADOR);
+    }
 }

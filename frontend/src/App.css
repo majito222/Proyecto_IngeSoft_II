@@ -181,6 +181,10 @@
   gap: 16px;
 }
 
+.pagina--ancha {
+  max-width: 1080px;
+}
+
 .pagina__encabezado h1 {
   color: var(--verde-oscuro);
   font-size: 26px;
@@ -346,6 +350,252 @@ button {
   padding: 4px 10px;
   border-radius: 999px;
   margin-bottom: 12px;
+}
+
+/* --- Estado del turno (F-10) --- */
+
+.estado-turno {
+  --tono: var(--texto-suave);
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--tono);
+  background: color-mix(in srgb, var(--tono) 14%, transparent);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.estado-turno--pendiente,
+.contador--pendiente { --tono: var(--ambar); }
+.estado-turno--peligro,
+.contador--peligro { --tono: var(--rojo); }
+.estado-turno--exito,
+.contador--exito { --tono: var(--verde); }
+.estado-turno--alerta-atendida,
+.contador--alerta-atendida { --tono: #8a5a9e; }
+.estado-turno--aprobado,
+.contador--aprobado { --tono: #2d6f8f; }
+
+/* --- Cierre de turno: galpón asignado e inicio (F-10.2) --- */
+
+.turno-galpon {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.turno-galpon__datos,
+.turno-galpon__estado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.turno-galpon__estado {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.turno-galpon__estado small,
+.turno-galpon__detalle,
+.turno-galpon__etiqueta {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.turno-galpon__etiqueta {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.turno-galpon__nombre {
+  font-size: 20px;
+  color: var(--verde-oscuro);
+}
+
+.turno-galpon code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+
+.inicio-turno {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inicio-turno p {
+  margin: 0;
+}
+
+.aviso-supervisor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aviso-supervisor h3,
+.aviso-supervisor p {
+  margin: 0;
+}
+
+.enlace-boton {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* --- Panel de turnos (F-10.3) --- */
+
+.filtro-estados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.contador {
+  --tono: var(--texto);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--tono);
+  border-radius: 10px;
+}
+
+.contador:hover {
+  background: color-mix(in srgb, var(--tono) 6%, var(--superficie));
+}
+
+.contador[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--tono) 12%, var(--superficie));
+  border-color: var(--tono);
+}
+
+.contador:focus-visible,
+.boton-secundario:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 2px;
+}
+
+.contador__numero {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--tono);
+}
+
+.contador__etiqueta {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.barra-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.barra-filtros label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.barra-filtros__actualizar {
+  margin-left: auto;
+}
+
+.boton-secundario {
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--verde-oscuro);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .boton-secundario,
+  .turno-galpon__nombre {
+    color: #8fd6a8;
+  }
+}
+
+.boton-secundario:hover:not(:disabled) {
+  background: var(--fondo);
+}
+
+.boton-secundario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tabla-turnos {
+  overflow-x: auto;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.tabla-turnos table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-turnos th,
+.tabla-turnos td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla-turnos th {
+  white-space: nowrap;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-suave);
+  background: var(--fondo);
+}
+
+.tabla-turnos tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-turnos td small {
+  display: block;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.tabla-turnos .numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fila-pendiente td:first-child {
+  box-shadow: inset 4px 0 0 var(--ambar);
+}
+
+.tabla-turnos__vacia {
+  text-align: center !important;
+  color: var(--texto-suave);
+  padding: 28px 14px !important;
 }
 
 /* --- Responsive: sidebar se vuelve menú lateral en móvil --- */

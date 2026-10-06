@@ -8,6 +8,16 @@ export function IconCierre(props) {
   );
 }
 
+export function IconTurnos(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="1.5" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+      <path d="M7.5 13h3M7.5 16.5h3M13.5 13h3M13.5 16.5h3" />
+    </svg>
+  );
+}
+
 export function IconLotes(props) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
