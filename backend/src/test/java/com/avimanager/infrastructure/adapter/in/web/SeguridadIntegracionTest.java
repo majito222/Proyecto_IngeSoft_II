@@ -9,8 +9,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,6 +46,12 @@ class SeguridadIntegracionTest {
 
     @Autowired
     private ObjectMapper json;
+
+    @Autowired
+    private JwtEncoder jwtEncoder;
+
+    @Autowired
+    private JwtDecoder jwtDecoder;
 
     @Test
     void loginConCredencialesValidasDevuelveTokenYPermisos() throws Exception {
@@ -171,6 +189,35 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].galponNombre").value("Galpón 2"))
                 .andExpect(jsonPath("$[0].responsableNombre").value("Olga Operaria"))
                 .andExpect(jsonPath("$[0].alertaId").isNotEmpty());
+    }
+
+    /** F-09.7: la sesion dura 8 horas desde que se emite el token. */
+    @Test
+    void elTokenDeSesionDuraOchoHoras_F097() throws Exception {
+        Jwt jwt = jwtDecoder.decode(token("operario"));
+
+        assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt())).isEqualTo(Duration.ofHours(8));
+    }
+
+    /** F-09.7: un token vencido, aunque tenga una firma valida, ya no da acceso. */
+    @Test
+    void unTokenExpiradoResponde401_F097() throws Exception {
+        Instant hace9Horas = Instant.now().minus(Duration.ofHours(9));
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("avimanager")
+                .subject("operario")
+                .issuedAt(hace9Horas)
+                .expiresAt(hace9Horas.plus(Duration.ofHours(8)))
+                .claim("nombre", "Pedro Operario")
+                .claim("rol", "OPERARIO")
+                .claim("permisos", List.of("CERRAR_TURNO"))
+                .build();
+        String tokenExpirado = jwtEncoder.encode(
+                JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+
+        mvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + tokenExpirado))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Debes iniciar sesión para continuar"));
     }
 
     @Test
