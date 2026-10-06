@@ -36,4 +36,20 @@ class RolTest {
         assertThat(Arrays.stream(Rol.values()).filter(r -> r.tienePermiso(Permiso.VER_TURNOS)))
                 .containsExactly(Rol.ADMINISTRADOR);
     }
+
+    /** Matriz completa de permisos por rol, acordada para la Entrega 2. */
+    @Test
+    void cadaRolTieneExactamenteSusPermisos() {
+        assertThat(Rol.OPERARIO.getPermisos()).containsExactlyInAnyOrder(
+                Permiso.INICIAR_TURNO, Permiso.CERRAR_TURNO, Permiso.VER_LOTES,
+                Permiso.VER_RACION, Permiso.REGISTRAR_PESO, Permiso.REPORTAR_DANOS);
+        assertThat(Rol.ADMINISTRADOR.getPermisos()).containsExactlyInAnyOrder(Permiso.values());
+        assertThat(Rol.VETERINARIO.getPermisos()).containsExactlyInAnyOrder(
+                Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.ATENDER_ALERTAS_SANITARIAS);
+        assertThat(Rol.DUENO.getPermisos()).containsExactlyInAnyOrder(
+                Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.VER_INVENTARIO, Permiso.VER_DASHBOARD_KPI);
+        assertThat(Rol.ZOOTECNISTA.getPermisos()).containsExactlyInAnyOrder(Permiso.VER_LOTES, Permiso.VER_RACION);
+        assertThat(Rol.TECNICO.getPermisos()).containsExactlyInAnyOrder(
+                Permiso.VER_LOTES, Permiso.ATENDER_ORDENES_MANTENIMIENTO);
+    }
 }
