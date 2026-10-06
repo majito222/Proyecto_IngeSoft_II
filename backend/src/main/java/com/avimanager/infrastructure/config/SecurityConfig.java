@@ -51,6 +51,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/lotes/*/turnos/cierre")
                             .hasAuthority(Permiso.CERRAR_TURNO.name())
+                        .requestMatchers(HttpMethod.POST, "/api/turnos/inicio")
+                            .hasAuthority(Permiso.INICIAR_TURNO.name())
+                        .requestMatchers(HttpMethod.GET, "/api/turnos/actual")
+                            .hasAuthority(Permiso.INICIAR_TURNO.name())
+                        .requestMatchers(HttpMethod.GET, "/api/turnos")
+                            .hasAuthority(Permiso.VER_TURNOS.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))

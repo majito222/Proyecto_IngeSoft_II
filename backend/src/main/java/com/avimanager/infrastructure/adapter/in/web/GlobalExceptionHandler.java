@@ -1,7 +1,11 @@
 package com.avimanager.infrastructure.adapter.in.web;
 
 import com.avimanager.domain.exception.CredencialesInvalidasException;
+import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
+import com.avimanager.domain.exception.TurnoAjenoException;
+import com.avimanager.domain.exception.TurnoNoDisponibleException;
+import com.avimanager.domain.exception.TurnoYaIniciadoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +19,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LoteNoEncontradoException.class)
     public ResponseEntity<Map<String, String>> manejarLoteNoEncontrado(LoteNoEncontradoException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
+    }
+
+    /** Reglas del turno (F-10): la peticion es valida pero choca con el estado actual. */
+    @ExceptionHandler({TurnoYaIniciadoException.class, TurnoNoDisponibleException.class, GalponNoAsignadoException.class})
+    public ResponseEntity<Map<String, String>> manejarConflictoDeTurno(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
+    }
+
+    /** Tiene el permiso CERRAR_TURNO, pero el turno es de otro worker. */
+    @ExceptionHandler(TurnoAjenoException.class)
+    public ResponseEntity<Map<String, String>> manejarTurnoAjeno(TurnoAjenoException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("mensaje", ex.getMessage()));
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)

@@ -7,6 +7,7 @@ import InicioPage from "./pages/InicioPage";
 import CierreTurnoPage from "./pages/CierreTurnoPage";
 import LotesPage from "./pages/LotesPage";
 import AlertasPage from "./pages/AlertasPage";
+import TurnosPage from "./pages/TurnosPage";
 import "./App.css";
 
 export default function App() {
@@ -23,6 +24,14 @@ export default function App() {
             }
           >
             <Route index element={<InicioPage />} />
+            <Route
+              path="turnos"
+              element={
+                <RutaProtegida permiso="VER_TURNOS">
+                  <TurnosPage />
+                </RutaProtegida>
+              }
+            />
             <Route
               path="cierre-turno"
               element={

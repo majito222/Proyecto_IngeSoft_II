@@ -3,6 +3,7 @@ package com.avimanager.domain.model;
 /**
  * Usuario del sistema (F-09). Solo guarda el hash de la contraseña: el
  * algoritmo de cifrado lo decide la infraestructura (CifradorContrasenaPort).
+ * Un worker puede tener un galpon asignado (RQ-007), donde inicia su turno (F-10).
  */
 public class Usuario {
 
@@ -12,8 +13,14 @@ public class Usuario {
     private final String contrasenaCifrada;
     private final Rol rol;
     private final boolean activo;
+    private final String galponAsignadoId;
 
     public Usuario(String id, String username, String nombreCompleto, String contrasenaCifrada, Rol rol, boolean activo) {
+        this(id, username, nombreCompleto, contrasenaCifrada, rol, activo, null);
+    }
+
+    public Usuario(String id, String username, String nombreCompleto, String contrasenaCifrada, Rol rol, boolean activo,
+                   String galponAsignadoId) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("El usuario debe tener un nombre de usuario");
         }
@@ -26,6 +33,7 @@ public class Usuario {
         this.contrasenaCifrada = contrasenaCifrada;
         this.rol = rol;
         this.activo = activo;
+        this.galponAsignadoId = galponAsignadoId;
     }
 
     public boolean tienePermiso(Permiso permiso) {
@@ -54,5 +62,9 @@ public class Usuario {
 
     public boolean isActivo() {
         return activo;
+    }
+
+    public String getGalponAsignadoId() {
+        return galponAsignadoId;
     }
 }
