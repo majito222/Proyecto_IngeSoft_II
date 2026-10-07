@@ -1,5 +1,6 @@
 package com.avimanager.domain.service;
 
+import com.avimanager.domain.event.AlertaSanitariaGenerada;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
 import com.avimanager.domain.exception.TurnoAjenoException;
 import com.avimanager.domain.exception.TurnoNoDisponibleException;
@@ -10,6 +11,10 @@ import com.avimanager.domain.model.Lote;
 import com.avimanager.domain.model.Turno;
 import com.avimanager.domain.port.in.CerrarTurnoCommand;
 import com.avimanager.domain.port.in.CerrarTurnoResult;
+import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
+import com.avimanager.domain.service.cierre.ReglaCierreTurno;
+import com.avimanager.domain.service.cierre.ReglaConsolidacion;
+import com.avimanager.domain.service.cierre.ReglaMortalidad;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * puertos de salida: no se levanta Spring ni ningun framework, lo cual
  * confirma que el dominio en la arquitectura hexagonal es independiente
  * de la infraestructura. Desde F-10 tambien verifican el estado del turno.
+ * La cadena de reglas se arma igual que en UseCaseConfig.
  */
 class CerrarTurnoServiceTest {
 
@@ -36,7 +42,7 @@ class CerrarTurnoServiceTest {
     private FakeLoteRepository loteRepository;
     private FakeReporteDiarioRepository reporteRepository;
     private FakeAlertaSanitariaRepository alertaRepository;
-    private FakeNotificadorAlertaSanitaria notificador;
+    private FakePublicadorEventos publicador;
     private FakeTurnoRepository turnoRepository;
     private CerrarTurnoService service;
     private Turno turnoDeHoy;
@@ -46,10 +52,13 @@ class CerrarTurnoServiceTest {
         loteRepository = new FakeLoteRepository();
         reporteRepository = new FakeReporteDiarioRepository();
         alertaRepository = new FakeAlertaSanitariaRepository();
-        notificador = new FakeNotificadorAlertaSanitaria();
+        publicador = new FakePublicadorEventos();
         turnoRepository = new FakeTurnoRepository();
-        service = new CerrarTurnoService(loteRepository, reporteRepository, alertaRepository, notificador,
-                turnoRepository, RELOJ_FIJO);
+
+        ReglaCierreTurno reglas = new ReglaCamposObligatorios();
+        reglas.enlazar(new ReglaMortalidad(loteRepository, reporteRepository, alertaRepository, turnoRepository, publicador))
+                .enlazar(new ReglaConsolidacion(loteRepository, reporteRepository, turnoRepository));
+        service = new CerrarTurnoService(loteRepository, turnoRepository, reglas, RELOJ_FIJO);
 
         loteRepository.agregar(new Lote("lote-1", "galpon-1", 500, 500, 3, EstadoLote.ACTIVO));
         turnoDeHoy = turnoRepository.guardar(
@@ -92,7 +101,7 @@ class CerrarTurnoServiceTest {
         assertThat(loteRepository.buscarPorId("lote-1").get().getPoblacionActual()).isEqualTo(495);
         assertThat(loteRepository.buscarPorId("lote-1").get().getEstado()).isEqualTo(EstadoLote.ACTIVO);
         assertThat(alertaRepository.guardadas).isEmpty();
-        assertThat(notificador.notificadas).isEmpty();
+        assertThat(publicador.publicados).isEmpty();
 
         assertThat(turnoDeHoy.getEstado()).isEqualTo(EstadoTurno.CERRADO);
         assertThat(turnoDeHoy.getHoraCierre()).isEqualTo(LocalDateTime.of(2026, 3, 10, 8, 0));
@@ -117,7 +126,11 @@ class CerrarTurnoServiceTest {
                 .isEqualTo(500);
 
         assertThat(alertaRepository.guardadas).hasSize(1);
-        assertThat(notificador.notificadas).hasSize(1);
+        assertThat(publicador.publicados)
+                .as("RN-01: se publica un evento para que avisen al veterinario y al administrador")
+                .singleElement()
+                .isInstanceOfSatisfying(AlertaSanitariaGenerada.class,
+                        e -> assertThat(e.getAlerta()).isSameAs(resultado.getAlertaSanitaria()));
 
         assertThat(turnoDeHoy.getEstado()).isEqualTo(EstadoTurno.BLOQUEADO_ALERTA_SANITARIA);
         assertThat(turnoDeHoy.getAlertaSanitariaId()).isEqualTo(resultado.getAlertaSanitaria().getId());
