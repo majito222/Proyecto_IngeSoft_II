@@ -39,7 +39,7 @@ public class CerrarTurnoResponse {
             case ALERTA_SANITARIA -> new CerrarTurnoResponse(
                     resultado.getEstado().name(), false, List.of(),
                     "Cierre bloqueado: la mortalidad supero el umbral critico. Se genero una alerta sanitaria "
-                            + "y se notifico al veterinario.",
+                            + "y se notifico al veterinario y al administrador.",
                     resultado.getReporteDiario().getPorcentajeMortalidad(),
                     resultado.getReporteDiario().getId(),
                     resultado.getAlertaSanitaria().getId(), resultado);

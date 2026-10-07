@@ -9,7 +9,7 @@ import com.avimanager.domain.port.out.CifradorContrasenaPort;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.GeneradorTokenPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
-import com.avimanager.domain.port.out.NotificadorAlertaSanitariaPort;
+import com.avimanager.domain.port.out.PublicadorEventosPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
@@ -17,6 +17,10 @@ import com.avimanager.domain.service.CerrarTurnoService;
 import com.avimanager.domain.service.ConsultarTurnosService;
 import com.avimanager.domain.service.IniciarSesionService;
 import com.avimanager.domain.service.IniciarTurnoService;
+import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
+import com.avimanager.domain.service.cierre.ReglaCierreTurno;
+import com.avimanager.domain.service.cierre.ReglaConsolidacion;
+import com.avimanager.domain.service.cierre.ReglaMortalidad;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -35,15 +39,32 @@ public class UseCaseConfig {
         return Clock.systemDefaultZone();
     }
 
+    /**
+     * Cadena de reglas del cierre de turno (patron Chain of Responsibility). El
+     * orden importa: primero RN-05, luego RN-07/RN-01 y al final la consolidacion.
+     * Para agregar una regla (por ejemplo, el descuento de inventario de F-03),
+     * se enlaza un eslabon nuevo antes de ReglaConsolidacion.
+     */
+    @Bean
+    public ReglaCierreTurno reglasDeCierreTurno(LoteRepositoryPort loteRepository,
+                                                ReporteDiarioRepositoryPort reporteDiarioRepository,
+                                                AlertaSanitariaRepositoryPort alertaSanitariaRepository,
+                                                TurnoRepositoryPort turnoRepository,
+                                                PublicadorEventosPort publicadorEventos) {
+        ReglaCierreTurno primera = new ReglaCamposObligatorios();
+        primera
+                .enlazar(new ReglaMortalidad(loteRepository, reporteDiarioRepository, alertaSanitariaRepository,
+                        turnoRepository, publicadorEventos))
+                .enlazar(new ReglaConsolidacion(loteRepository, reporteDiarioRepository, turnoRepository));
+        return primera;
+    }
+
     @Bean
     public CerrarTurnoUseCase cerrarTurnoUseCase(LoteRepositoryPort loteRepository,
-                                                  ReporteDiarioRepositoryPort reporteDiarioRepository,
-                                                  AlertaSanitariaRepositoryPort alertaSanitariaRepository,
-                                                  NotificadorAlertaSanitariaPort notificador,
                                                   TurnoRepositoryPort turnoRepository,
+                                                  ReglaCierreTurno reglasDeCierreTurno,
                                                   Clock clock) {
-        return new CerrarTurnoService(loteRepository, reporteDiarioRepository,
-                alertaSanitariaRepository, notificador, turnoRepository, clock);
+        return new CerrarTurnoService(loteRepository, turnoRepository, reglasDeCierreTurno, clock);
     }
 
     @Bean

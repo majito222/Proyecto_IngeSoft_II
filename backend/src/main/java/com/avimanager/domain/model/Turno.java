@@ -1,7 +1,5 @@
 package com.avimanager.domain.model;
 
-import com.avimanager.domain.exception.TurnoNoDisponibleException;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -9,6 +7,8 @@ import java.time.LocalDateTime;
  * Entidad de dominio (F-10): la jornada de un worker sobre el lote de su galpon
  * en una fecha. Un lote tiene un solo turno por dia, porque RN-07 calcula la
  * mortalidad con las bajas del dia completo.
+ * Las transiciones de estado las decide EstadoTurno (patron State): Turno solo
+ * guarda los datos de cada transicion y delega en su estado actual.
  */
 public class Turno {
 
@@ -36,19 +36,17 @@ public class Turno {
     }
 
     public void cerrar(ReporteDiario reporte, LocalDateTime ahora) {
-        exigirAbierto();
+        this.estado = estado.cerrar();
         this.reporteDiarioId = reporte.getId();
         this.porcentajeMortalidad = reporte.getPorcentajeMortalidad();
         this.horaCierre = ahora;
-        this.estado = EstadoTurno.CERRADO;
     }
 
     public void bloquearPorAlertaSanitaria(ReporteDiario reporte, AlertaSanitaria alerta) {
-        exigirAbierto();
+        this.estado = estado.bloquearPorAlertaSanitaria();
         this.reporteDiarioId = reporte.getId();
         this.porcentajeMortalidad = reporte.getPorcentajeMortalidad();
         this.alertaSanitariaId = alerta.getId();
-        this.estado = EstadoTurno.BLOQUEADO_ALERTA_SANITARIA;
     }
 
     public boolean esResponsable(String username) {
@@ -56,13 +54,7 @@ public class Turno {
     }
 
     public boolean estaAbierto() {
-        return estado == EstadoTurno.ABIERTO;
-    }
-
-    private void exigirAbierto() {
-        if (!estaAbierto()) {
-            throw new TurnoNoDisponibleException("El turno ya no está abierto (estado " + estado + ")");
-        }
+        return estado.admiteCierre();
     }
 
     public String getId() {
