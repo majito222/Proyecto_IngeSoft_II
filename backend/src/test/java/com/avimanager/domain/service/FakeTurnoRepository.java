@@ -30,4 +30,9 @@ class FakeTurnoRepository implements TurnoRepositoryPort {
     public List<Turno> listarTodos() {
         return List.copyOf(almacen.values());
     }
+
+    @Override
+    public Optional<Turno> buscarPorAlertaSanitaria(String alertaId) {
+        return almacen.values().stream().filter(t -> alertaId.equals(t.getAlertaSanitariaId())).findFirst();
+    }
 }

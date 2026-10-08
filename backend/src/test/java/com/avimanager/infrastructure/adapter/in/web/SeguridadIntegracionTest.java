@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Duration;
@@ -189,6 +190,61 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].galponNombre").value("Galpón 2"))
                 .andExpect(jsonPath("$[0].responsableNombre").value("Olga Operaria"))
                 .andExpect(jsonPath("$[0].alertaId").isNotEmpty());
+    }
+
+    /** Matriz rol -> listado de alertas sanitarias (permiso VER_ALERTAS_SANITARIAS). */
+    @ParameterizedTest(name = "{0} al listar alertas -> HTTP {1}")
+    @CsvSource({
+            "veterinario, 200",
+            "dueno,       200",
+            "admin,       200",
+            "operario,    403",
+            "zootecnista, 403",
+            "tecnico,     403",
+    })
+    void soloVeterinarioDuenoYAdministradorVenLasAlertas_F026(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/alertas").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /**
+     * Matriz rol -> atender una alerta (permiso ATENDER_ALERTAS_SANITARIAS), sobre
+     * una alerta inexistente: con permiso llega al caso de uso (404); sin permiso, 403.
+     */
+    @ParameterizedTest(name = "{0} al atender una alerta -> HTTP {1}")
+    @CsvSource({
+            "veterinario, 404",
+            "admin,       404",
+            "dueno,       403",
+            "operario,    403",
+            "zootecnista, 403",
+            "tecnico,     403",
+    })
+    void soloVeterinarioYAdministradorAtiendenAlertas_F025(String username, int statusEsperado) throws Exception {
+        mvc.perform(post("/api/alertas/no-existe/atencion").header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"diagnostico\":\"x\",\"tratamiento\":\"y\"}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Flujo completo de F-02.5 sobre la alerta de demo del Galpon 2. Cambia los datos de demo: reinicia el contexto. */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elVeterinarioAtiendeLaAlertaYElTurnoQuedaCerradoConAlerta_F025() throws Exception {
+        String token = token("veterinario");
+        String cuerpo = "{\"diagnostico\":\"Bronquitis infecciosa\",\"tratamiento\":\"Vacuna de refuerzo\",\"liberarLote\":true}";
+
+        mvc.perform(post("/api/alertas/alerta-demo-t2/atencion").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ATENDIDA"))
+                .andExpect(jsonPath("$.estadoTurno").value("CERRADO_CON_ALERTA"))
+                .andExpect(jsonPath("$.atendidaPorNombre").value("Valeria Veterinaria"))
+                .andExpect(jsonPath("$.galponNombre").value("Galpón 2"));
+
+        mvc.perform(post("/api/alertas/alerta-demo-t2/atencion").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isConflict());
     }
 
     /** F-09.7: la sesion dura 8 horas desde que se emite el token. */

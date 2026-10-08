@@ -49,6 +49,15 @@ public class Turno {
         this.alertaSanitariaId = alerta.getId();
     }
 
+    /**
+     * F-02.5: el veterinario atendio la alerta, asi que el turno bloqueado se
+     * cierra con alerta. El reporte sigue siendo del worker responsable.
+     */
+    public void cerrarConAlertaAtendida(LocalDateTime ahora) {
+        this.estado = estado.cerrarConAlertaAtendida();
+        this.horaCierre = ahora;
+    }
+
     public boolean esResponsable(String username) {
         return workerUsername.equals(username);
     }

@@ -13,4 +13,7 @@ public interface TurnoRepositoryPort {
     Optional<Turno> buscarPorLoteYFecha(String loteId, LocalDate fecha);
 
     List<Turno> listarTodos();
+
+    /** Turno que quedo bloqueado por esa alerta sanitaria (F-02.5). */
+    Optional<Turno> buscarPorAlertaSanitaria(String alertaId);
 }

@@ -1,5 +1,7 @@
 package com.avimanager.infrastructure.adapter.in.web;
 
+import com.avimanager.domain.exception.AlertaNoEncontradaException;
+import com.avimanager.domain.exception.AlertaYaAtendidaException;
 import com.avimanager.domain.exception.CredencialesInvalidasException;
 import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
@@ -16,13 +18,19 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AlertaNoEncontradaException.class)
+    public ResponseEntity<Map<String, String>> manejarAlertaNoEncontrada(AlertaNoEncontradaException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
+    }
+
     @ExceptionHandler(LoteNoEncontradoException.class)
     public ResponseEntity<Map<String, String>> manejarLoteNoEncontrado(LoteNoEncontradoException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
 
     /** Reglas del turno (F-10): la peticion es valida pero choca con el estado actual. */
-    @ExceptionHandler({TurnoYaIniciadoException.class, TurnoNoDisponibleException.class, GalponNoAsignadoException.class})
+    @ExceptionHandler({TurnoYaIniciadoException.class, TurnoNoDisponibleException.class, GalponNoAsignadoException.class,
+            AlertaYaAtendidaException.class})
     public ResponseEntity<Map<String, String>> manejarConflictoDeTurno(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
     }
