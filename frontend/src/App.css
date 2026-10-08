@@ -598,6 +598,107 @@ button {
   padding: 28px 14px !important;
 }
 
+/* --- Alertas sanitarias (F-02.5 / F-02.6) --- */
+
+.alerta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-left: 6px solid var(--borde);
+}
+
+.alerta--pendiente {
+  border-left-color: var(--rojo);
+}
+
+.alerta--atendida {
+  border-left-color: var(--verde);
+}
+
+.alerta__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.alerta__cabecera > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alerta__galpon {
+  font-size: 18px;
+}
+
+.alerta__detalle,
+.alerta__aviso {
+  color: var(--texto-suave);
+  font-size: 13px;
+  margin: 0;
+}
+
+.alerta__detalle code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+
+.alerta__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.alerta__porcentaje {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rojo);
+  line-height: 1;
+}
+
+.alerta--atendida .alerta__porcentaje {
+  color: var(--texto-suave);
+}
+
+.alerta__atencion {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.alerta__atencion dt {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+
+.alerta__atencion dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+
+.alerta__formulario {
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.alerta__casilla {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
 /* --- Responsive: sidebar se vuelve menú lateral en móvil --- */
 
 @media (max-width: 720px) {

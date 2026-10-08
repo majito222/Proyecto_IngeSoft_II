@@ -57,6 +57,10 @@ public class SecurityConfig {
                             .hasAuthority(Permiso.INICIAR_TURNO.name())
                         .requestMatchers(HttpMethod.GET, "/api/turnos")
                             .hasAuthority(Permiso.VER_TURNOS.name())
+                        .requestMatchers(HttpMethod.GET, "/api/alertas")
+                            .hasAuthority(Permiso.VER_ALERTAS_SANITARIAS.name())
+                        .requestMatchers(HttpMethod.POST, "/api/alertas/*/atencion")
+                            .hasAuthority(Permiso.ATENDER_ALERTAS_SANITARIAS.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))

@@ -1,6 +1,8 @@
 package com.avimanager.infrastructure.config;
 
+import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
+import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
 import com.avimanager.domain.port.in.ConsultarTurnosUseCase;
 import com.avimanager.domain.port.in.IniciarSesionUseCase;
 import com.avimanager.domain.port.in.IniciarTurnoUseCase;
@@ -13,7 +15,9 @@ import com.avimanager.domain.port.out.PublicadorEventosPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
+import com.avimanager.domain.service.AtenderAlertaSanitariaService;
 import com.avimanager.domain.service.CerrarTurnoService;
+import com.avimanager.domain.service.ConsultarAlertasService;
 import com.avimanager.domain.service.ConsultarTurnosService;
 import com.avimanager.domain.service.IniciarSesionService;
 import com.avimanager.domain.service.IniciarTurnoService;
@@ -83,6 +87,30 @@ public class UseCaseConfig {
                                                           TurnoRepositoryPort turnoRepository,
                                                           Clock clock) {
         return new ConsultarTurnosService(usuarioRepository, galponRepository, loteRepository, turnoRepository, clock);
+    }
+
+    @Bean
+    public ConsultarAlertasUseCase consultarAlertasUseCase(AlertaSanitariaRepositoryPort alertaSanitariaRepository,
+                                                            TurnoRepositoryPort turnoRepository,
+                                                            LoteRepositoryPort loteRepository,
+                                                            GalponRepositoryPort galponRepository,
+                                                            UsuarioRepositoryPort usuarioRepository) {
+        return new ConsultarAlertasService(alertaSanitariaRepository, turnoRepository, loteRepository,
+                galponRepository, usuarioRepository);
+    }
+
+    @Bean
+    public AtenderAlertaSanitariaUseCase atenderAlertaSanitariaUseCase(
+            AlertaSanitariaRepositoryPort alertaSanitariaRepository,
+            TurnoRepositoryPort turnoRepository,
+            ReporteDiarioRepositoryPort reporteDiarioRepository,
+            LoteRepositoryPort loteRepository,
+            GalponRepositoryPort galponRepository,
+            UsuarioRepositoryPort usuarioRepository,
+            PublicadorEventosPort publicadorEventos,
+            Clock clock) {
+        return new AtenderAlertaSanitariaService(alertaSanitariaRepository, turnoRepository, reporteDiarioRepository,
+                loteRepository, galponRepository, usuarioRepository, publicadorEventos, clock);
     }
 
     @Bean

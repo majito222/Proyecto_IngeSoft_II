@@ -67,4 +67,20 @@ class TurnoTest {
                 new AlertaSanitaria("a-1", "lote-1", "r-1", HOY.atTime(15, 0), 2.0)))
                 .isInstanceOf(TurnoNoDisponibleException.class);
     }
+
+    @Test
+    void unTurnoBloqueadoSeCierraConAlertaCuandoSeAtiendeLaAlerta_F025() {
+        turno.bloquearPorAlertaSanitaria(reporte, new AlertaSanitaria("a-1", "lote-1", "r-1", HOY.atTime(13, 0), 2.0));
+
+        turno.cerrarConAlertaAtendida(HOY.atTime(16, 0));
+
+        assertThat(turno.getEstado()).isEqualTo(EstadoTurno.CERRADO_CON_ALERTA);
+        assertThat(turno.getHoraCierre()).isEqualTo(HOY.atTime(16, 0));
+    }
+
+    @Test
+    void unTurnoAbiertoNoSePuedeCerrarConAlerta_F025() {
+        assertThatThrownBy(() -> turno.cerrarConAlertaAtendida(HOY.atTime(16, 0)))
+                .isInstanceOf(TurnoNoDisponibleException.class);
+    }
 }

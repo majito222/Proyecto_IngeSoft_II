@@ -4,8 +4,9 @@ import com.avimanager.domain.model.AlertaSanitaria;
 import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
@@ -19,7 +20,13 @@ public class InMemoryAlertaSanitariaRepository implements AlertaSanitariaReposit
         return alertaSanitaria;
     }
 
-    public Collection<AlertaSanitaria> listarTodas() {
-        return almacen.values();
+    @Override
+    public Optional<AlertaSanitaria> buscarPorId(String alertaId) {
+        return Optional.ofNullable(almacen.get(alertaId));
+    }
+
+    @Override
+    public List<AlertaSanitaria> listarTodas() {
+        return List.copyOf(almacen.values());
     }
 }

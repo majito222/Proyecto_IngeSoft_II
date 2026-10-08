@@ -30,6 +30,11 @@ public class Lote {
         this.estado = EstadoLote.EN_OBSERVACION;
     }
 
+    /** El veterinario decide sacar el lote de observacion al atender la alerta (F-02.5). */
+    public void liberarDeObservacion() {
+        this.estado = EstadoLote.ACTIVO;
+    }
+
     public String getId() {
         return id;
     }
