@@ -192,6 +192,38 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].alertaId").isNotEmpty());
     }
 
+    /** Matriz rol -> racion del dia (permiso VER_RACION). */
+    @ParameterizedTest(name = "{0} al ver la racion -> HTTP {1}")
+    @CsvSource({
+            "zootecnista, 200",
+            "operario,    200",
+            "admin,       200",
+            "veterinario, 403",
+            "dueno,       403",
+            "tecnico,     403",
+    })
+    void soloZootecnistaOperarioYAdministradorVenLaRacion_F06(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/racion").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    @Test
+    void laRacionDelDiaSaleDeLaTablaEstandarParaCadaGalpon_F06() throws Exception {
+        mvc.perform(get("/api/racion").header("Authorization", "Bearer " + token("zootecnista")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].galponNombre").value("Galpón 1"))
+                .andExpect(jsonPath("$[0].gramosPorAve").value(23.0))
+                .andExpect(jsonPath("$[0].estrategia").value("Tabla de nutrición estándar"));
+    }
+
+    @Test
+    void elOperarioVeLaRacionSugeridaAlConsultarSuTurno_F06() throws Exception {
+        mvc.perform(get("/api/turnos/actual").header("Authorization", "Bearer " + token("operario3")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.racionSugeridaKg").value(10.2));
+    }
+
     /** Matriz rol -> listado de alertas sanitarias (permiso VER_ALERTAS_SANITARIAS). */
     @ParameterizedTest(name = "{0} al listar alertas -> HTTP {1}")
     @CsvSource({

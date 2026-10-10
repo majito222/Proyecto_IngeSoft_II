@@ -4,6 +4,7 @@ import com.avimanager.domain.model.Lote;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,11 @@ public class InMemoryLoteRepository implements LoteRepositoryPort {
     @Override
     public Optional<Lote> buscarPorGalpon(String galponId) {
         return almacen.values().stream().filter(l -> l.getGalponId().equals(galponId)).findFirst();
+    }
+
+    @Override
+    public List<Lote> listarTodos() {
+        return List.copyOf(almacen.values());
     }
 
     @Override

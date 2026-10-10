@@ -111,6 +111,11 @@ export default function CierreTurnoPage() {
               Lote <code>{datos.loteId}</code> · {datos.poblacionActual} aves · {datos.edadSemanas} semanas
               {datos.estadoLote === "EN_OBSERVACION" && " · lote en observación"}
             </span>
+            {datos.racionSugeridaKg != null && (
+              <span className="turno-galpon__racion">
+                Ración sugerida hoy: <strong>{datos.racionSugeridaKg.toLocaleString("es-CO")} kg</strong>
+              </span>
+            )}
           </div>
           <div className="turno-galpon__estado">
             {turno ? (
