@@ -57,6 +57,8 @@ public class SecurityConfig {
                             .hasAuthority(Permiso.INICIAR_TURNO.name())
                         .requestMatchers(HttpMethod.GET, "/api/turnos")
                             .hasAuthority(Permiso.VER_TURNOS.name())
+                        .requestMatchers(HttpMethod.GET, "/api/racion")
+                            .hasAuthority(Permiso.VER_RACION.name())
                         .requestMatchers(HttpMethod.GET, "/api/alertas")
                             .hasAuthority(Permiso.VER_ALERTAS_SANITARIAS.name())
                         .requestMatchers(HttpMethod.POST, "/api/alertas/*/atencion")

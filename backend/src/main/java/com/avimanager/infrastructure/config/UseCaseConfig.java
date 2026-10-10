@@ -1,6 +1,7 @@
 package com.avimanager.infrastructure.config;
 
 import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
+import com.avimanager.domain.port.in.CalcularRacionUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
 import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
 import com.avimanager.domain.port.in.ConsultarTurnosUseCase;
@@ -16,12 +17,15 @@ import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
 import com.avimanager.domain.service.AtenderAlertaSanitariaService;
+import com.avimanager.domain.service.CalcularRacionService;
 import com.avimanager.domain.service.CerrarTurnoService;
 import com.avimanager.domain.service.ConsultarAlertasService;
 import com.avimanager.domain.service.ConsultarTurnosService;
 import com.avimanager.domain.service.IniciarSesionService;
 import com.avimanager.domain.service.IniciarTurnoService;
 import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
+import com.avimanager.domain.service.racion.RacionTablaEstandar;
+import com.avimanager.domain.service.racion.SelectorEstrategiaRacion;
 import com.avimanager.domain.service.cierre.ReglaCierreTurno;
 import com.avimanager.domain.service.cierre.ReglaConsolidacion;
 import com.avimanager.domain.service.cierre.ReglaMortalidad;
@@ -87,6 +91,14 @@ public class UseCaseConfig {
                                                           TurnoRepositoryPort turnoRepository,
                                                           Clock clock) {
         return new ConsultarTurnosService(usuarioRepository, galponRepository, loteRepository, turnoRepository, clock);
+    }
+
+    /** F-06: el selector elige la estrategia de racion de cada lote (patron Strategy). */
+    @Bean
+    public CalcularRacionUseCase calcularRacionUseCase(LoteRepositoryPort loteRepository,
+                                                        GalponRepositoryPort galponRepository) {
+        return new CalcularRacionService(loteRepository, galponRepository,
+                new SelectorEstrategiaRacion(new RacionTablaEstandar()));
     }
 
     @Bean

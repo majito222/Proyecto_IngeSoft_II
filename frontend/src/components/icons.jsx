@@ -18,6 +18,16 @@ export function IconTurnos(props) {
   );
 }
 
+export function IconRacion(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M4 11h16l-1.5 8a1 1 0 0 1-1 .8h-11a1 1 0 0 1-1-.8L4 11Z" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      <path d="M9.5 15h5" />
+    </svg>
+  );
+}
+
 export function IconLotes(props) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>

@@ -598,6 +598,17 @@ button {
   padding: 28px 14px !important;
 }
 
+/* --- Ración diaria (F-06) --- */
+
+.turno-galpon__racion {
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.racion__estrategia {
+  color: var(--texto-suave);
+}
+
 /* --- Alertas sanitarias (F-02.5 / F-02.6) --- */
 
 .alerta {

@@ -8,6 +8,7 @@ import CierreTurnoPage from "./pages/CierreTurnoPage";
 import LotesPage from "./pages/LotesPage";
 import AlertasPage from "./pages/AlertasPage";
 import TurnosPage from "./pages/TurnosPage";
+import RacionPage from "./pages/RacionPage";
 import "./App.css";
 
 export default function App() {
@@ -37,6 +38,14 @@ export default function App() {
               element={
                 <RutaProtegida permiso="CERRAR_TURNO">
                   <CierreTurnoPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="racion"
+              element={
+                <RutaProtegida permiso="VER_RACION">
+                  <RacionPage />
                 </RutaProtegida>
               }
             />
