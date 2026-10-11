@@ -4,14 +4,18 @@ import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
 import com.avimanager.domain.port.in.CalcularRacionUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
 import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
+import com.avimanager.domain.port.in.ConsultarPesajesUseCase;
 import com.avimanager.domain.port.in.ConsultarTurnosUseCase;
 import com.avimanager.domain.port.in.IniciarSesionUseCase;
 import com.avimanager.domain.port.in.IniciarTurnoUseCase;
+import com.avimanager.domain.port.in.RegistrarPesajeUseCase;
+import com.avimanager.domain.port.in.RevisarPesajeUseCase;
 import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
 import com.avimanager.domain.port.out.CifradorContrasenaPort;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.GeneradorTokenPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
+import com.avimanager.domain.port.out.PesajeRepositoryPort;
 import com.avimanager.domain.port.out.PublicadorEventosPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
@@ -20,9 +24,12 @@ import com.avimanager.domain.service.AtenderAlertaSanitariaService;
 import com.avimanager.domain.service.CalcularRacionService;
 import com.avimanager.domain.service.CerrarTurnoService;
 import com.avimanager.domain.service.ConsultarAlertasService;
+import com.avimanager.domain.service.ConsultarPesajesService;
 import com.avimanager.domain.service.ConsultarTurnosService;
 import com.avimanager.domain.service.IniciarSesionService;
 import com.avimanager.domain.service.IniciarTurnoService;
+import com.avimanager.domain.service.RegistrarPesajeService;
+import com.avimanager.domain.service.RevisarPesajeService;
 import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
 import com.avimanager.domain.service.racion.RacionTablaEstandar;
 import com.avimanager.domain.service.racion.SelectorEstrategiaRacion;
@@ -93,12 +100,43 @@ public class UseCaseConfig {
         return new ConsultarTurnosService(usuarioRepository, galponRepository, loteRepository, turnoRepository, clock);
     }
 
-    /** F-06: el selector elige la estrategia de racion de cada lote (patron Strategy). */
+    /**
+     * F-06: el selector elige la estrategia de racion de cada lote (patron
+     * Strategy): la tabla estandar, o la ajustada por peso si el Zootecnista
+     * aprobo el ajuste del ultimo pesaje (F-07, RN-02).
+     */
     @Bean
     public CalcularRacionUseCase calcularRacionUseCase(LoteRepositoryPort loteRepository,
-                                                        GalponRepositoryPort galponRepository) {
+                                                        GalponRepositoryPort galponRepository,
+                                                        PesajeRepositoryPort pesajeRepository) {
         return new CalcularRacionService(loteRepository, galponRepository,
-                new SelectorEstrategiaRacion(new RacionTablaEstandar()));
+                new SelectorEstrategiaRacion(new RacionTablaEstandar(), pesajeRepository));
+    }
+
+    @Bean
+    public RegistrarPesajeUseCase registrarPesajeUseCase(UsuarioRepositoryPort usuarioRepository,
+                                                          GalponRepositoryPort galponRepository,
+                                                          LoteRepositoryPort loteRepository,
+                                                          PesajeRepositoryPort pesajeRepository,
+                                                          PublicadorEventosPort publicadorEventos,
+                                                          Clock clock) {
+        return new RegistrarPesajeService(usuarioRepository, galponRepository, loteRepository, pesajeRepository,
+                publicadorEventos, clock);
+    }
+
+    @Bean
+    public RevisarPesajeUseCase revisarPesajeUseCase(PesajeRepositoryPort pesajeRepository,
+                                                      GalponRepositoryPort galponRepository,
+                                                      UsuarioRepositoryPort usuarioRepository,
+                                                      Clock clock) {
+        return new RevisarPesajeService(pesajeRepository, galponRepository, usuarioRepository, clock);
+    }
+
+    @Bean
+    public ConsultarPesajesUseCase consultarPesajesUseCase(PesajeRepositoryPort pesajeRepository,
+                                                            GalponRepositoryPort galponRepository,
+                                                            UsuarioRepositoryPort usuarioRepository) {
+        return new ConsultarPesajesService(pesajeRepository, galponRepository, usuarioRepository);
     }
 
     @Bean

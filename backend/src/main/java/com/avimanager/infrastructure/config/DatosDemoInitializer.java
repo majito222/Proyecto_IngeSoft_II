@@ -4,6 +4,7 @@ import com.avimanager.domain.model.AlertaSanitaria;
 import com.avimanager.domain.model.EstadoLote;
 import com.avimanager.domain.model.Galpon;
 import com.avimanager.domain.model.Lote;
+import com.avimanager.domain.model.Pesaje;
 import com.avimanager.domain.model.ReporteDiario;
 import com.avimanager.domain.model.Rol;
 import com.avimanager.domain.model.Turno;
@@ -12,6 +13,7 @@ import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
 import com.avimanager.domain.port.out.CifradorContrasenaPort;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
+import com.avimanager.domain.port.out.PesajeRepositoryPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
@@ -31,6 +34,10 @@ import java.time.LocalTime;
  *   galpon-2 / lote-2 (800 aves)  -> operario2 (sin turno hoy; ayer quedo bloqueado por alerta)
  *   galpon-3 / lote-3 (600 aves)  -> operario3 (turno de hoy ABIERTO: aparece pendiente en el dashboard)
  *                                    operario4 (mismo galpon: ve el turno de operario3 pero no puede cerrarlo)
+ *
+ * Pesajes (F-07): el Galpon 1 se peso la semana pasada dentro de rango y el
+ * Galpon 3 se peso hoy 6% por debajo del estandar, pendiente de que el
+ * Zootecnista apruebe el ajuste de racion.
  *
  * Tambien crea un usuario de demo por cada rol (F-09). La contraseña de cada
  * uno es su nombre de usuario seguido de "123" (ej. operario / operario123).
@@ -44,6 +51,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
     private final TurnoRepositoryPort turnoRepository;
     private final ReporteDiarioRepositoryPort reporteDiarioRepository;
     private final AlertaSanitariaRepositoryPort alertaSanitariaRepository;
+    private final PesajeRepositoryPort pesajeRepository;
     private final CifradorContrasenaPort cifrador;
     private final Clock clock;
 
@@ -53,6 +61,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
                                 TurnoRepositoryPort turnoRepository,
                                 ReporteDiarioRepositoryPort reporteDiarioRepository,
                                 AlertaSanitariaRepositoryPort alertaSanitariaRepository,
+                                PesajeRepositoryPort pesajeRepository,
                                 CifradorContrasenaPort cifrador,
                                 Clock clock) {
         this.galponRepository = galponRepository;
@@ -61,6 +70,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
         this.turnoRepository = turnoRepository;
         this.reporteDiarioRepository = reporteDiarioRepository;
         this.alertaSanitariaRepository = alertaSanitariaRepository;
+        this.pesajeRepository = pesajeRepository;
         this.cifrador = cifrador;
         this.clock = clock;
     }
@@ -90,6 +100,16 @@ public class DatosDemoInitializer implements CommandLineRunner {
         turnoBloqueado("demo-t2", "operario2", "lote-2", "galpon-2", ayer, 800, 16);
         turnoCerrado("demo-t3", "operario3", "lote-3", "galpon-3", ayer, 600, 3);
         turnoRepository.guardar(new Turno("demo-t4", "operario3", "lote-3", "galpon-3", hoy, hoy.atTime(6, 30)));
+
+        // Semana 3: estandar 190 g, 186 g es -2.1% (en rango). Semana 2: estandar 120 g, 113 g es -5.8%.
+        pesaje("demo-p1", "lote-1", 186, 30, "operario", hoy.minusDays(7).atTime(7, 0));
+        pesaje("demo-p2", "lote-3", 113, 30, "operario3", hoy.atTime(7, 15));
+    }
+
+    private void pesaje(String id, String loteId, double pesoPromedio, int muestra, String worker,
+                        LocalDateTime fechaHora) {
+        Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
+        pesajeRepository.guardar(new Pesaje(id, lote, pesoPromedio, muestra, worker, fechaHora));
     }
 
     private void crearUsuario(String username, String nombre, Rol rol, String galponAsignadoId) {

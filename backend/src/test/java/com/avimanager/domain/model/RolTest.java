@@ -37,6 +37,12 @@ class RolTest {
                 .containsExactly(Rol.ADMINISTRADOR);
     }
 
+    @Test
+    void soloZootecnistaYAdministradorRevisanPesajes_F07() {
+        assertThat(Arrays.stream(Rol.values()).filter(r -> r.tienePermiso(Permiso.REVISAR_PESAJES)))
+                .containsExactlyInAnyOrder(Rol.ZOOTECNISTA, Rol.ADMINISTRADOR);
+    }
+
     /** Matriz completa de permisos por rol, acordada para la Entrega 2. */
     @Test
     void cadaRolTieneExactamenteSusPermisos() {
@@ -48,7 +54,8 @@ class RolTest {
                 Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.ATENDER_ALERTAS_SANITARIAS);
         assertThat(Rol.DUENO.getPermisos()).containsExactlyInAnyOrder(
                 Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.VER_INVENTARIO, Permiso.VER_DASHBOARD_KPI);
-        assertThat(Rol.ZOOTECNISTA.getPermisos()).containsExactlyInAnyOrder(Permiso.VER_LOTES, Permiso.VER_RACION);
+        assertThat(Rol.ZOOTECNISTA.getPermisos()).containsExactlyInAnyOrder(
+                Permiso.VER_LOTES, Permiso.VER_RACION, Permiso.REVISAR_PESAJES);
         assertThat(Rol.TECNICO.getPermisos()).containsExactlyInAnyOrder(
                 Permiso.VER_LOTES, Permiso.ATENDER_ORDENES_MANTENIMIENTO);
     }

@@ -9,6 +9,8 @@ import LotesPage from "./pages/LotesPage";
 import AlertasPage from "./pages/AlertasPage";
 import TurnosPage from "./pages/TurnosPage";
 import RacionPage from "./pages/RacionPage";
+import PesajePage from "./pages/PesajePage";
+import RevisionPesajesPage from "./pages/RevisionPesajesPage";
 import "./App.css";
 
 export default function App() {
@@ -38,6 +40,22 @@ export default function App() {
               element={
                 <RutaProtegida permiso="CERRAR_TURNO">
                   <CierreTurnoPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="pesaje"
+              element={
+                <RutaProtegida permiso="REGISTRAR_PESO">
+                  <PesajePage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="pesajes"
+              element={
+                <RutaProtegida permiso="REVISAR_PESAJES">
+                  <RevisionPesajesPage />
                 </RutaProtegida>
               }
             />

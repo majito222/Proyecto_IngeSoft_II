@@ -609,6 +609,67 @@ button {
   color: var(--texto-suave);
 }
 
+/* --- Pesaje semanal (F-07): fuera de ±5% se resalta en amarillo (F-07.2) --- */
+
+.pesaje__estandar {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pesaje__campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 16px;
+}
+
+.pesaje--desviado {
+  background: color-mix(in srgb, var(--ambar) 10%, var(--superficie));
+}
+
+.pesaje--desviado input {
+  border-color: var(--ambar);
+}
+
+.pesaje__vista-previa {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.pesaje__vista-previa--fuera,
+.pesaje__desviacion--fuera {
+  color: var(--ambar);
+  font-weight: 700;
+}
+
+.pesaje__titulo {
+  margin: 0;
+}
+
+.fila-desviada td {
+  background: color-mix(in srgb, var(--ambar) 12%, transparent);
+}
+
+.fila-desviada td:first-child {
+  box-shadow: inset 4px 0 0 var(--ambar);
+}
+
+.pesaje__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.boton-secundario--principal {
+  color: #fff;
+  background: var(--verde);
+  border-color: var(--verde);
+}
+
+.boton-secundario--principal:hover:not(:disabled) {
+  background: var(--verde-oscuro);
+}
+
 /* --- Alertas sanitarias (F-02.5 / F-02.6) --- */
 
 .alerta {
