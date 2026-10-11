@@ -17,7 +17,7 @@ public enum Rol {
             Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.ATENDER_ALERTAS_SANITARIAS)),
     DUENO("Dueño", EnumSet.of(
             Permiso.VER_LOTES, Permiso.VER_ALERTAS_SANITARIAS, Permiso.VER_INVENTARIO, Permiso.VER_DASHBOARD_KPI)),
-    ZOOTECNISTA("Zootecnista", EnumSet.of(Permiso.VER_LOTES, Permiso.VER_RACION)),
+    ZOOTECNISTA("Zootecnista", EnumSet.of(Permiso.VER_LOTES, Permiso.VER_RACION, Permiso.REVISAR_PESAJES)),
     TECNICO("Técnico de mantenimiento", EnumSet.of(Permiso.VER_LOTES, Permiso.ATENDER_ORDENES_MANTENIMIENTO));
 
     private final String descripcion;

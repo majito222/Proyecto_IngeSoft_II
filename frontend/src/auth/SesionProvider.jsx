@@ -26,6 +26,7 @@ export default function SesionProvider({ children }) {
     }
     guardarSesion(data);
     setSesion(data);
+    return data.usuario;
   }, []);
 
   const valor = useMemo(

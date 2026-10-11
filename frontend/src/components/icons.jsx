@@ -28,6 +28,26 @@ export function IconRacion(props) {
   );
 }
 
+export function IconPesaje(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M6 7h12l2 13H4L6 7Z" />
+      <path d="M9.5 7a2.5 2.5 0 0 1 5 0" />
+      <path d="M12 16.5 14 12" />
+    </svg>
+  );
+}
+
+export function IconRevisionPesajes(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M4 19V5M4 19h16" />
+      <path d="m7.5 14 3.5-4 3 2.5 5-6" />
+      <path d="M7 8.5h12" strokeDasharray="1.5 2" />
+    </svg>
+  );
+}
+
 export function IconLotes(props) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>

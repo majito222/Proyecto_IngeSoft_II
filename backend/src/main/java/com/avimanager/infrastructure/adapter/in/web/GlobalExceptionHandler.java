@@ -5,6 +5,9 @@ import com.avimanager.domain.exception.AlertaYaAtendidaException;
 import com.avimanager.domain.exception.CredencialesInvalidasException;
 import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
+import com.avimanager.domain.exception.PesajeNoEncontradoException;
+import com.avimanager.domain.exception.PesajeYaRegistradoException;
+import com.avimanager.domain.exception.PesajeYaRevisadoException;
 import com.avimanager.domain.exception.TurnoAjenoException;
 import com.avimanager.domain.exception.TurnoNoDisponibleException;
 import com.avimanager.domain.exception.TurnoYaIniciadoException;
@@ -23,14 +26,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
 
-    @ExceptionHandler(LoteNoEncontradoException.class)
-    public ResponseEntity<Map<String, String>> manejarLoteNoEncontrado(LoteNoEncontradoException ex) {
+    @ExceptionHandler({LoteNoEncontradoException.class, PesajeNoEncontradoException.class})
+    public ResponseEntity<Map<String, String>> manejarNoEncontrado(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
 
     /** Reglas del turno (F-10): la peticion es valida pero choca con el estado actual. */
     @ExceptionHandler({TurnoYaIniciadoException.class, TurnoNoDisponibleException.class, GalponNoAsignadoException.class,
-            AlertaYaAtendidaException.class})
+            AlertaYaAtendidaException.class, PesajeYaRegistradoException.class, PesajeYaRevisadoException.class})
     public ResponseEntity<Map<String, String>> manejarConflictoDeTurno(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
     }

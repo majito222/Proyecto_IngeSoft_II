@@ -4,6 +4,7 @@ import com.avimanager.domain.exception.LoteNoEncontradoException;
 import com.avimanager.domain.model.EstadoLote;
 import com.avimanager.domain.model.Galpon;
 import com.avimanager.domain.model.Lote;
+import com.avimanager.domain.model.Pesaje;
 import com.avimanager.domain.port.in.RacionDiaria;
 import com.avimanager.domain.service.racion.EstrategiaRacion;
 import com.avimanager.domain.service.racion.RacionTablaEstandar;
@@ -11,6 +12,7 @@ import com.avimanager.domain.service.racion.SelectorEstrategiaRacion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,9 +26,11 @@ class CalcularRacionServiceTest {
 
     private FakeLoteRepository lotes;
     private FakeGalponRepository galpones;
+    private FakePesajeRepository pesajes;
 
     @BeforeEach
     void setUp() {
+        pesajes = new FakePesajeRepository();
         lotes = new FakeLoteRepository();
         galpones = new FakeGalponRepository();
         galpones.guardar(new Galpon("galpon-1", "Galpón 1", 600));
@@ -36,7 +40,22 @@ class CalcularRacionServiceTest {
     }
 
     private CalcularRacionService servicioCon(EstrategiaRacion estrategia) {
-        return new CalcularRacionService(lotes, galpones, new SelectorEstrategiaRacion(estrategia));
+        return new CalcularRacionService(lotes, galpones, new SelectorEstrategiaRacion(estrategia, pesajes));
+    }
+
+    @Test
+    void conElAjusteAprobadoLaRacionDelLoteSeRecalculaPorPeso_RN02() {
+        // Semana 3: 23 g de racion y 190 g de peso estandar; 170 g es -10.5%.
+        Pesaje pesaje = new Pesaje("p-1", lotes.buscarPorId("lote-1").orElseThrow(), 170, 30, "operario",
+                LocalDateTime.of(2026, 3, 10, 7, 0));
+        pesaje.aprobarAjuste("zootecnista", LocalDateTime.of(2026, 3, 10, 9, 0));
+        pesajes.guardar(pesaje);
+
+        RacionDiaria racion = servicioCon(new RacionTablaEstandar()).racionDelLote("lote-1");
+
+        assertThat(racion.getGramosPorAve()).as("23 g x 190/170").isEqualTo(25.7);
+        assertThat(racion.getKilosTotales()).as("495 x 25.7 g").isEqualTo(12.7);
+        assertThat(racion.getEstrategia()).isEqualTo("Ajustada por peso (+11.8%)");
     }
 
     @Test

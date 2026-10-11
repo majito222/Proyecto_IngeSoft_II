@@ -9,7 +9,7 @@ import com.avimanager.domain.model.Lote;
  *
  * Estrategias:
  *   RacionTablaEstandar     tabla de nutricion por semana de edad (F-06)
- *   (F-07) racion ajustada por peso cuando el pesaje se desvia mas de 5% (RN-02)
+ *   RacionAjustadaPorPeso   corrige la base segun el ultimo pesaje aprobado (F-07, RN-02)
  */
 public interface EstrategiaRacion {
 

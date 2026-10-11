@@ -279,6 +279,94 @@ class SeguridadIntegracionTest {
                 .andExpect(status().isConflict());
     }
 
+    /** Matriz rol -> registrar un pesaje (permiso REGISTRAR_PESO); el body vacio llega al caso de uso como 400. */
+    @ParameterizedTest(name = "{0} al registrar un pesaje -> HTTP {1}")
+    @CsvSource({
+            "operario,    400",
+            "admin,       400",
+            "zootecnista, 403",
+            "veterinario, 403",
+            "dueno,       403",
+            "tecnico,     403",
+    })
+    void soloOperarioYAdministradorRegistranPesajes_F07(String username, int statusEsperado) throws Exception {
+        mvc.perform(post("/api/pesajes").header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Matriz rol -> revisar un pesaje (permiso REVISAR_PESAJES), sobre un pesaje inexistente. */
+    @ParameterizedTest(name = "{0} al revisar un pesaje -> HTTP {1}")
+    @CsvSource({
+            "zootecnista, 404",
+            "admin,       404",
+            "operario,    403",
+            "veterinario, 403",
+            "dueno,       403",
+            "tecnico,     403",
+    })
+    void soloZootecnistaYAdministradorRevisanPesajes_F07(String username, int statusEsperado) throws Exception {
+        mvc.perform(post("/api/pesajes/no-existe/revision").header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"aprobarAjuste\":true}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    @Test
+    void elZootecnistaVeLosPesajesConLosPendientesPrimero_F07() throws Exception {
+        mvc.perform(get("/api/pesajes").header("Authorization", "Bearer " + token("zootecnista")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("demo-p2"))
+                .andExpect(jsonPath("$[0].galponNombre").value("Galpón 3"))
+                .andExpect(jsonPath("$[0].estado").value("PENDIENTE_REVISION"))
+                .andExpect(jsonPath("$[0].fueraDeRango").value(true))
+                .andExpect(jsonPath("$[0].desviacionPorcentaje").value(-5.83));
+        mvc.perform(get("/api/pesajes").header("Authorization", "Bearer " + token("operario")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void elWorkerVeElPesoEstandarYElPesajeDeEstaSemana_F07() throws Exception {
+        mvc.perform(get("/api/pesajes/referencia").header("Authorization", "Bearer " + token("operario3")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.galponNombre").value("Galpón 3"))
+                .andExpect(jsonPath("$.pesoEstandarGramos").value(120.0))
+                .andExpect(jsonPath("$.pesajeDeLaSemana.id").value("demo-p2"));
+    }
+
+    /** Flujo completo de F-07: registrar fuera de rango, aprobar el ajuste y ver la racion recalculada. */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void unPesajeFueraDeRangoAprobadoRecalculaLaRacion_F07() throws Exception {
+        // Galpon 1, semana 3: estandar 190 g y 23 g de racion. 170 g es -10.53%.
+        String respuesta = mvc.perform(post("/api/pesajes").header("Authorization", "Bearer " + token("operario"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pesoPromedioGramos\":170,\"tamanoMuestra\":30}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estado").value("PENDIENTE_REVISION"))
+                .andExpect(jsonPath("$.desviacionPorcentaje").value(-10.53))
+                .andExpect(jsonPath("$.registradoPorNombre").value("Pedro Operario"))
+                .andReturn().getResponse().getContentAsString();
+        String pesajeId = json.readTree(respuesta).get("id").asText();
+
+        mvc.perform(post("/api/pesajes").header("Authorization", "Bearer " + token("operario"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pesoPromedioGramos\":190,\"tamanoMuestra\":30}"))
+                .andExpect(status().isConflict());
+
+        String zootecnista = token("zootecnista");
+        mvc.perform(post("/api/pesajes/" + pesajeId + "/revision").header("Authorization", "Bearer " + zootecnista)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"aprobarAjuste\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("AJUSTE_APROBADO"))
+                .andExpect(jsonPath("$.revisadoPorNombre").value("Zoe Zootecnista"));
+
+        mvc.perform(get("/api/racion").header("Authorization", "Bearer " + zootecnista))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].galponNombre").value("Galpón 1"))
+                .andExpect(jsonPath("$[0].gramosPorAve").value(25.7))
+                .andExpect(jsonPath("$[0].estrategia").value("Ajustada por peso (+11.8%)"));
+    }
+
     /** F-09.7: la sesion dura 8 horas desde que se emite el token. */
     @Test
     void elTokenDeSesionDuraOchoHoras_F097() throws Exception {

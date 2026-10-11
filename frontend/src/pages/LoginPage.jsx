@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSesion } from "../auth/SesionContext";
+import { ITEMS_MENU } from "../layout/menu";
+
+/**
+ * Vuelve a la página donde estaba el usuario solo si su rol puede verla. Si
+ * otro usuario entra después de cerrar sesión, va a su inicio en lugar de
+ * caer en "Acceso denegado".
+ */
+function destinoTrasLogin(desde, permisos = []) {
+  if (!desde) return "/";
+  const item = ITEMS_MENU.find((i) => i.to === desde);
+  return !item || permisos.includes(item.permiso) ? desde : "/";
+}
 
 export default function LoginPage() {
   const { usuario, login } = useSesion();
@@ -12,7 +24,7 @@ export default function LoginPage() {
   const [enviando, setEnviando] = useState(false);
 
   if (usuario) {
-    return <Navigate to={location.state?.desde ?? "/"} replace />;
+    return <Navigate to={destinoTrasLogin(location.state?.desde, usuario.permisos)} replace />;
   }
 
   async function manejarEnvio(evento) {
@@ -20,8 +32,8 @@ export default function LoginPage() {
     setEnviando(true);
     setError(null);
     try {
-      await login(username, contrasena);
-      navigate(location.state?.desde ?? "/", { replace: true });
+      const usuarioNuevo = await login(username, contrasena);
+      navigate(destinoTrasLogin(location.state?.desde, usuarioNuevo?.permisos), { replace: true });
     } catch (e) {
       setError(e instanceof TypeError ? "No se pudo conectar con el servidor" : e.message);
     } finally {
