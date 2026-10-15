@@ -81,6 +81,16 @@ public class SecurityConfig {
                             .hasAuthority(Permiso.GESTIONAR_GALPONES.name())
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/*/galpon")
                             .hasAuthority(Permiso.GESTIONAR_GALPONES.name())
+                        // F-08: danos de infraestructura y ordenes de mantenimiento
+                        .requestMatchers(HttpMethod.GET, "/api/danos/referencia")
+                            .hasAuthority(Permiso.REPORTAR_DANOS.name())
+                        .requestMatchers(HttpMethod.POST, "/api/danos")
+                            .hasAuthority(Permiso.REPORTAR_DANOS.name())
+                        .requestMatchers(HttpMethod.GET, "/api/ordenes-mantenimiento")
+                            .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())
+                        .requestMatchers(HttpMethod.POST, "/api/ordenes-mantenimiento/*/inicio",
+                                "/api/ordenes-mantenimiento/*/certificacion")
+                            .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))
