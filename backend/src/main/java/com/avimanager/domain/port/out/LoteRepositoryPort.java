@@ -9,7 +9,10 @@ public interface LoteRepositoryPort {
 
     Optional<Lote> buscarPorId(String loteId);
 
-    /** Lote que aloja hoy el galpon (un galpon tiene un lote activo a la vez). */
+    /**
+     * Lote activo que aloja hoy el galpon (un galpon tiene un lote activo a la vez).
+     * Los lotes FINALIZADOS (F-11) no cuentan.
+     */
     Optional<Lote> buscarPorGalpon(String galponId);
 
     Lote guardar(Lote lote);

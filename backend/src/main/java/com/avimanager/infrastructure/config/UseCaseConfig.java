@@ -1,13 +1,18 @@
 package com.avimanager.infrastructure.config;
 
+import com.avimanager.domain.port.in.AsignarWorkerUseCase;
 import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
 import com.avimanager.domain.port.in.CalcularRacionUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
 import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
+import com.avimanager.domain.port.in.ConsultarGalponesUseCase;
 import com.avimanager.domain.port.in.ConsultarPesajesUseCase;
 import com.avimanager.domain.port.in.ConsultarTurnosUseCase;
+import com.avimanager.domain.port.in.FinalizarLoteUseCase;
 import com.avimanager.domain.port.in.IniciarSesionUseCase;
 import com.avimanager.domain.port.in.IniciarTurnoUseCase;
+import com.avimanager.domain.port.in.RegistrarGalponUseCase;
+import com.avimanager.domain.port.in.RegistrarLoteUseCase;
 import com.avimanager.domain.port.in.RegistrarPesajeUseCase;
 import com.avimanager.domain.port.in.RevisarPesajeUseCase;
 import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
@@ -20,14 +25,19 @@ import com.avimanager.domain.port.out.PublicadorEventosPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
+import com.avimanager.domain.service.AsignarWorkerService;
 import com.avimanager.domain.service.AtenderAlertaSanitariaService;
 import com.avimanager.domain.service.CalcularRacionService;
 import com.avimanager.domain.service.CerrarTurnoService;
 import com.avimanager.domain.service.ConsultarAlertasService;
+import com.avimanager.domain.service.ConsultarGalponesService;
 import com.avimanager.domain.service.ConsultarPesajesService;
 import com.avimanager.domain.service.ConsultarTurnosService;
+import com.avimanager.domain.service.FinalizarLoteService;
 import com.avimanager.domain.service.IniciarSesionService;
 import com.avimanager.domain.service.IniciarTurnoService;
+import com.avimanager.domain.service.RegistrarGalponService;
+import com.avimanager.domain.service.RegistrarLoteService;
 import com.avimanager.domain.service.RegistrarPesajeService;
 import com.avimanager.domain.service.RevisarPesajeService;
 import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
@@ -161,6 +171,38 @@ public class UseCaseConfig {
             Clock clock) {
         return new AtenderAlertaSanitariaService(alertaSanitariaRepository, turnoRepository, reporteDiarioRepository,
                 loteRepository, galponRepository, usuarioRepository, publicadorEventos, clock);
+    }
+
+    // F-11: galpones, lotes y asignacion de workers. Galpon y Lote se crean con
+    // sus Builders (patron Builder), que validan capacidad y lote activo unico.
+    @Bean
+    public ConsultarGalponesUseCase consultarGalponesUseCase(GalponRepositoryPort galponRepository,
+                                                              LoteRepositoryPort loteRepository,
+                                                              UsuarioRepositoryPort usuarioRepository) {
+        return new ConsultarGalponesService(galponRepository, loteRepository, usuarioRepository);
+    }
+
+    @Bean
+    public RegistrarGalponUseCase registrarGalponUseCase(GalponRepositoryPort galponRepository) {
+        return new RegistrarGalponService(galponRepository);
+    }
+
+    @Bean
+    public RegistrarLoteUseCase registrarLoteUseCase(GalponRepositoryPort galponRepository,
+                                                      LoteRepositoryPort loteRepository) {
+        return new RegistrarLoteService(galponRepository, loteRepository);
+    }
+
+    @Bean
+    public FinalizarLoteUseCase finalizarLoteUseCase(LoteRepositoryPort loteRepository) {
+        return new FinalizarLoteService(loteRepository);
+    }
+
+    @Bean
+    public AsignarWorkerUseCase asignarWorkerUseCase(UsuarioRepositoryPort usuarioRepository,
+                                                      GalponRepositoryPort galponRepository,
+                                                      TurnoRepositoryPort turnoRepository) {
+        return new AsignarWorkerService(usuarioRepository, galponRepository, turnoRepository);
     }
 
     @Bean
