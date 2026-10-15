@@ -4,6 +4,7 @@ import com.avimanager.domain.model.Usuario;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,5 +21,10 @@ class FakeUsuarioRepository implements UsuarioRepositoryPort {
     public Usuario guardar(Usuario usuario) {
         almacen.put(usuario.getUsername(), usuario);
         return usuario;
+    }
+
+    @Override
+    public List<Usuario> listarTodos() {
+        return List.copyOf(almacen.values());
     }
 }

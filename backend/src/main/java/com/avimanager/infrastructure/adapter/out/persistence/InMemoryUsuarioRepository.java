@@ -4,6 +4,7 @@ import com.avimanager.domain.model.Usuario;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,11 @@ public class InMemoryUsuarioRepository implements UsuarioRepositoryPort {
     public Usuario guardar(Usuario usuario) {
         almacen.put(clave(usuario.getUsername()), usuario);
         return usuario;
+    }
+
+    @Override
+    public List<Usuario> listarTodos() {
+        return List.copyOf(almacen.values());
     }
 
     private static String clave(String username) {

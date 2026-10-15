@@ -34,6 +34,7 @@ import java.time.LocalTime;
  *   galpon-2 / lote-2 (800 aves)  -> operario2 (sin turno hoy; ayer quedo bloqueado por alerta)
  *   galpon-3 / lote-3 (600 aves)  -> operario3 (turno de hoy ABIERTO: aparece pendiente en el dashboard)
  *                                    operario4 (mismo galpon: ve el turno de operario3 pero no puede cerrarlo)
+ *   galpon-4 (vacio, 1000 aves)   -> sin lote ni workers: para probar el registro de lotes (F-11)
  *
  * Pesajes (F-07): el Galpon 1 se peso la semana pasada dentro de rango y el
  * Galpon 3 se peso hoy 6% por debajo del estandar, pendiente de que el
@@ -80,6 +81,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
         galponRepository.guardar(new Galpon("galpon-1", "Galpón 1", 600));
         galponRepository.guardar(new Galpon("galpon-2", "Galpón 2", 900));
         galponRepository.guardar(new Galpon("galpon-3", "Galpón 3", 700));
+        galponRepository.guardar(new Galpon("galpon-4", "Galpón 4", 1000));
         loteRepository.guardar(new Lote("lote-1", "galpon-1", 500, 500, 3, EstadoLote.ACTIVO));
         loteRepository.guardar(new Lote("lote-2", "galpon-2", 800, 800, 5, EstadoLote.EN_OBSERVACION));
         loteRepository.guardar(new Lote("lote-3", "galpon-3", 600, 600, 2, EstadoLote.ACTIVO));

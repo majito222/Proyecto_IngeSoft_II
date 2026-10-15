@@ -26,6 +26,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -402,6 +403,127 @@ class SeguridadIntegracionTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("dueno"))
                 .andExpect(jsonPath("$.rol").value("DUENO"));
+    }
+
+    // --- F-11: galpones, lotes y asignacion de workers ---
+
+    /** Matriz rol -> consulta de galpones (permiso VER_LOTES: lo tienen todos los roles). */
+    @ParameterizedTest(name = "{0} al ver los galpones -> HTTP 200")
+    @CsvSource({"admin", "operario", "veterinario", "dueno", "zootecnista", "tecnico"})
+    void todosLosRolesConVER_LOTESVenLosGalpones_F11(String username) throws Exception {
+        mvc.perform(get("/api/galpones").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cadaGalponMuestraSuLoteActivoYSusWorkers_F11() throws Exception {
+        mvc.perform(get("/api/galpones").header("Authorization", "Bearer " + token("dueno")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[0].nombre").value("Galpón 1"))
+                .andExpect(jsonPath("$[0].estado").value("ACTIVO"))
+                .andExpect(jsonPath("$[0].loteActivo.id").value("lote-1"))
+                .andExpect(jsonPath("$[0].workers[0].username").value("operario"))
+                .andExpect(jsonPath("$[2].workers.length()").value(2))
+                .andExpect(jsonPath("$[3].nombre").value("Galpón 4"))
+                .andExpect(jsonPath("$[3].loteActivo").isEmpty());
+    }
+
+    /**
+     * Matriz rol -> gestion de galpones (permiso GESTIONAR_GALPONES): solo el
+     * Administrador; los demas roles reciben 403 en cada endpoint de escritura.
+     */
+    @ParameterizedTest(name = "{0} al gestionar galpones -> HTTP 403")
+    @CsvSource({"operario", "veterinario", "dueno", "zootecnista", "tecnico"})
+    void soloElAdministradorGestionaGalpones_F11(String username) throws Exception {
+        String token = token(username);
+        mvc.perform(post("/api/galpones").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Galpón 9\",\"capacidadMaxima\":100}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/galpones/galpon-4/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":100,\"edadSemanas\":0}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/lotes/lote-1/finalizacion").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/usuarios/operario4/galpon").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/workers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elAdministradorRegistraUnGalponYUnLoteDentroDeSuCapacidad_F11() throws Exception {
+        String token = token("admin");
+        String respuesta = mvc.perform(post("/api/galpones").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Galpón 5\",\"capacidadMaxima\":400}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.estado").value("ACTIVO"))
+                .andReturn().getResponse().getContentAsString();
+        String galponId = json.readTree(respuesta).get("id").asText();
+
+        mvc.perform(post("/api/galpones/" + galponId + "/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":401,\"edadSemanas\":0}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/galpones/" + galponId + "/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":400,\"edadSemanas\":0}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.galponId").value(galponId))
+                .andExpect(jsonPath("$.estado").value("ACTIVO"));
+        mvc.perform(post("/api/galpones/" + galponId + "/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":100,\"edadSemanas\":0}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void unGalponSinNombreResponde400YUnGalponQueNoExisteResponde404_F11() throws Exception {
+        String token = token("admin");
+        mvc.perform(post("/api/galpones").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"capacidadMaxima\":100}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/galpones/galpon-99/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":100,\"edadSemanas\":0}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void finalizarElLoteLiberaElGalponParaUnLoteNuevo_F11() throws Exception {
+        String token = token("admin");
+        mvc.perform(post("/api/lotes/lote-1/finalizacion").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("FINALIZADO"));
+        mvc.perform(post("/api/lotes/lote-1/finalizacion").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/galpones/galpon-1/lotes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"poblacionInicial\":550,\"edadSemanas\":0}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elAdministradorAsignaWorkersSalvoSiTienenUnTurnoAbierto_F11() throws Exception {
+        String token = token("admin");
+        mvc.perform(get("/api/workers").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4));
+        // operario4 no tiene turno abierto: pasa al Galpon 4
+        mvc.perform(put("/api/usuarios/operario4/galpon").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.galponAsignadoId").value("galpon-4"));
+        // operario3 tiene abierto el turno de hoy (datos de demo)
+        mvc.perform(put("/api/usuarios/operario3/galpon").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isConflict());
+        // solo los operarios se asignan
+        mvc.perform(put("/api/usuarios/veterinario/galpon").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(put("/api/usuarios/nadie/galpon").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isNotFound());
     }
 
     private String token(String username) throws Exception {

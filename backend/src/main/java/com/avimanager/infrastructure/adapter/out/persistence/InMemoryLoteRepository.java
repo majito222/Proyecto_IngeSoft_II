@@ -25,7 +25,7 @@ public class InMemoryLoteRepository implements LoteRepositoryPort {
 
     @Override
     public Optional<Lote> buscarPorGalpon(String galponId) {
-        return almacen.values().stream().filter(l -> l.getGalponId().equals(galponId)).findFirst();
+        return almacen.values().stream().filter(l -> l.getGalponId().equals(galponId) && l.estaActivo()).findFirst();
     }
 
     @Override

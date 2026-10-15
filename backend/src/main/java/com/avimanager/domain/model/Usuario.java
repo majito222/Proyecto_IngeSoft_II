@@ -1,9 +1,12 @@
 package com.avimanager.domain.model;
 
+import com.avimanager.domain.exception.UsuarioNoEsWorkerException;
+
 /**
  * Usuario del sistema (F-09). Solo guarda el hash de la contraseña: el
  * algoritmo de cifrado lo decide la infraestructura (CifradorContrasenaPort).
  * Un worker puede tener un galpon asignado (RQ-007), donde inicia su turno (F-10).
+ * El Administrador cambia esa asignacion en F-11; solo los operarios son workers.
  */
 public class Usuario {
 
@@ -13,7 +16,7 @@ public class Usuario {
     private final String contrasenaCifrada;
     private final Rol rol;
     private final boolean activo;
-    private final String galponAsignadoId;
+    private String galponAsignadoId;
 
     public Usuario(String id, String username, String nombreCompleto, String contrasenaCifrada, Rol rol, boolean activo) {
         this(id, username, nombreCompleto, contrasenaCifrada, rol, activo, null);
@@ -34,6 +37,22 @@ public class Usuario {
         this.rol = rol;
         this.activo = activo;
         this.galponAsignadoId = galponAsignadoId;
+    }
+
+    /** Solo el Operario trabaja turnos en un galpon (F-10), asi que solo el se asigna. */
+    public boolean esWorker() {
+        return rol == Rol.OPERARIO;
+    }
+
+    /**
+     * F-11: asigna el worker a un galpon (un galpon por worker). Con null queda
+     * sin galpon asignado.
+     */
+    public void asignarGalpon(String galponId) {
+        if (!esWorker()) {
+            throw new UsuarioNoEsWorkerException(username, rol);
+        }
+        this.galponAsignadoId = galponId;
     }
 
     public boolean tienePermiso(Permiso permiso) {

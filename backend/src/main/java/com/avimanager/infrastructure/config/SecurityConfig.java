@@ -71,6 +71,16 @@ public class SecurityConfig {
                             .hasAuthority(Permiso.VER_ALERTAS_SANITARIAS.name())
                         .requestMatchers(HttpMethod.POST, "/api/alertas/*/atencion")
                             .hasAuthority(Permiso.ATENDER_ALERTAS_SANITARIAS.name())
+                        // F-11: galpones, lotes y asignacion de workers
+                        .requestMatchers(HttpMethod.GET, "/api/galpones")
+                            .hasAuthority(Permiso.VER_LOTES.name())
+                        .requestMatchers(HttpMethod.POST, "/api/galpones", "/api/galpones/*/lotes",
+                                "/api/lotes/*/finalizacion")
+                            .hasAuthority(Permiso.GESTIONAR_GALPONES.name())
+                        .requestMatchers(HttpMethod.GET, "/api/workers")
+                            .hasAuthority(Permiso.GESTIONAR_GALPONES.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/*/galpon")
+                            .hasAuthority(Permiso.GESTIONAR_GALPONES.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))
