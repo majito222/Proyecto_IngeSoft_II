@@ -368,6 +368,98 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].estrategia").value("Ajustada por peso (+11.8%)"));
     }
 
+    /** Matriz rol -> reportar un dano (permiso REPORTAR_DANOS); el body vacio llega al caso de uso como 400. */
+    @ParameterizedTest(name = "{0} al reportar un dano -> HTTP {1}")
+    @CsvSource({
+            "operario,    400",
+            "admin,       400",
+            "tecnico,     403",
+            "veterinario, 403",
+            "dueno,       403",
+            "zootecnista, 403",
+    })
+    void soloOperarioYAdministradorReportanDanos_F08(String username, int statusEsperado) throws Exception {
+        mvc.perform(post("/api/danos").header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Matriz rol -> certificar una orden (permiso ATENDER_ORDENES_MANTENIMIENTO), sobre una orden inexistente. */
+    @ParameterizedTest(name = "{0} al certificar una orden -> HTTP {1}")
+    @CsvSource({
+            "tecnico,     404",
+            "admin,       404",
+            "operario,    403",
+            "veterinario, 403",
+            "dueno,       403",
+            "zootecnista, 403",
+    })
+    void soloTecnicoYAdministradorAtiendenOrdenes_F08(String username, int statusEsperado) throws Exception {
+        mvc.perform(post("/api/ordenes-mantenimiento/no-existe/certificacion")
+                        .header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"notaReparacion\":\"x\"}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    @Test
+    void elTecnicoVeLaOrdenVencidaDelGalpon2_F083() throws Exception {
+        mvc.perform(get("/api/ordenes-mantenimiento").header("Authorization", "Bearer " + token("tecnico")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("demo-o1"))
+                .andExpect(jsonPath("$[0].galponNombre").value("Galpón 2"))
+                .andExpect(jsonPath("$[0].estadoGalpon").value("EN_RIESGO_SANITARIO"))
+                .andExpect(jsonPath("$[0].prioridad").value("ALTA"))
+                .andExpect(jsonPath("$[0].vencida").value(true));
+    }
+
+    @Test
+    void unOperarioNoReportaDanosEnUnGalponAjeno_F082() throws Exception {
+        mvc.perform(post("/api/danos").header("Authorization", "Bearer " + token("operario"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"galponId\":\"galpon-3\",\"tipoDano\":\"DANO_TECHO\",\"descripcion\":\"Gotera\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    /** Flujo completo de F-08: reportar, el galpon queda en riesgo, el tecnico certifica y vuelve a ACTIVO. */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void reportarYCertificarUnDanoDevuelveElGalponAActivo_F08() throws Exception {
+        String respuesta = mvc.perform(post("/api/danos").header("Authorization", "Bearer " + token("operario"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipoDano\":\"CORTINA_DANADA\",\"descripcion\":\"Cortina lateral rasgada\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.galponNombre").value("Galpón 1"))
+                .andExpect(jsonPath("$.estadoGalpon").value("EN_RIESGO_SANITARIO"))
+                .andExpect(jsonPath("$.estado").value("ABIERTA"))
+                .andExpect(jsonPath("$.prioridad").value("MEDIA"))
+                .andExpect(jsonPath("$.minutosRestantes").value(720))
+                .andReturn().getResponse().getContentAsString();
+        String ordenId = json.readTree(respuesta).get("id").asText();
+
+        String tecnico = token("tecnico");
+        mvc.perform(post("/api/ordenes-mantenimiento/" + ordenId + "/inicio").header("Authorization", "Bearer " + tecnico))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("EN_REPARACION"))
+                .andExpect(jsonPath("$.tecnicoNombre").value("Tomás Técnico"));
+
+        mvc.perform(post("/api/ordenes-mantenimiento/" + ordenId + "/certificacion")
+                        .header("Authorization", "Bearer " + tecnico)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"notaReparacion\":\" \"}"))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(post("/api/ordenes-mantenimiento/" + ordenId + "/certificacion")
+                        .header("Authorization", "Bearer " + tecnico)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"notaReparacion\":\"Se cosió la cortina\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CERTIFICADA"))
+                .andExpect(jsonPath("$.estadoGalpon").value("ACTIVO"));
+
+        mvc.perform(post("/api/ordenes-mantenimiento/" + ordenId + "/certificacion")
+                        .header("Authorization", "Bearer " + tecnico)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"notaReparacion\":\"Otra vez\"}"))
+                .andExpect(status().isConflict());
+    }
+
     /** F-09.7: la sesion dura 8 horas desde que se emite el token. */
     @Test
     void elTokenDeSesionDuraOchoHoras_F097() throws Exception {

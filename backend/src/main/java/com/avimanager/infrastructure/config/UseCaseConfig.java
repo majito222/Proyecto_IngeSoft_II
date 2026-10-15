@@ -1,5 +1,13 @@
 package com.avimanager.infrastructure.config;
 
+import com.avimanager.domain.port.in.AtenderOrdenUseCase;
+import com.avimanager.domain.port.in.ConsultarOrdenesUseCase;
+import com.avimanager.domain.port.in.ReportarDanoUseCase;
+import com.avimanager.domain.port.out.OrdenMantenimientoRepositoryPort;
+import com.avimanager.domain.service.AtenderOrdenService;
+import com.avimanager.domain.service.ConsultarOrdenesService;
+import com.avimanager.domain.service.ReportarDanoService;
+import com.avimanager.domain.service.mantenimiento.FabricaOrdenMantenimiento;
 import com.avimanager.domain.port.in.AsignarWorkerUseCase;
 import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
 import com.avimanager.domain.port.in.CalcularRacionUseCase;
@@ -203,6 +211,33 @@ public class UseCaseConfig {
                                                       GalponRepositoryPort galponRepository,
                                                       TurnoRepositoryPort turnoRepository) {
         return new AsignarWorkerService(usuarioRepository, galponRepository, turnoRepository);
+    }
+
+    /** F-08: la fabrica crea la orden con su prioridad y el plazo de 12 h (patron Factory, RN-04). */
+    @Bean
+    public ReportarDanoUseCase reportarDanoUseCase(UsuarioRepositoryPort usuarioRepository,
+                                                    GalponRepositoryPort galponRepository,
+                                                    OrdenMantenimientoRepositoryPort ordenMantenimientoRepository,
+                                                    PublicadorEventosPort publicadorEventos,
+                                                    Clock clock) {
+        return new ReportarDanoService(usuarioRepository, galponRepository, ordenMantenimientoRepository,
+                new FabricaOrdenMantenimiento(), publicadorEventos, clock);
+    }
+
+    @Bean
+    public AtenderOrdenUseCase atenderOrdenUseCase(OrdenMantenimientoRepositoryPort ordenMantenimientoRepository,
+                                                    GalponRepositoryPort galponRepository,
+                                                    UsuarioRepositoryPort usuarioRepository,
+                                                    Clock clock) {
+        return new AtenderOrdenService(ordenMantenimientoRepository, galponRepository, usuarioRepository, clock);
+    }
+
+    @Bean
+    public ConsultarOrdenesUseCase consultarOrdenesUseCase(OrdenMantenimientoRepositoryPort ordenMantenimientoRepository,
+                                                            GalponRepositoryPort galponRepository,
+                                                            UsuarioRepositoryPort usuarioRepository,
+                                                            Clock clock) {
+        return new ConsultarOrdenesService(ordenMantenimientoRepository, galponRepository, usuarioRepository, clock);
     }
 
     @Bean

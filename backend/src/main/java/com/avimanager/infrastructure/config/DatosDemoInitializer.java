@@ -1,5 +1,10 @@
 package com.avimanager.infrastructure.config;
 
+import com.avimanager.domain.model.OrdenMantenimiento;
+import com.avimanager.domain.model.PrioridadOrden;
+import com.avimanager.domain.model.TipoDano;
+import com.avimanager.domain.port.out.OrdenMantenimientoRepositoryPort;
+import com.avimanager.domain.service.mantenimiento.FabricaOrdenMantenimiento;
 import com.avimanager.domain.model.AlertaSanitaria;
 import com.avimanager.domain.model.EstadoLote;
 import com.avimanager.domain.model.Galpon;
@@ -40,6 +45,9 @@ import java.time.LocalTime;
  * Galpon 3 se peso hoy 6% por debajo del estandar, pendiente de que el
  * Zootecnista apruebe el ajuste de racion.
  *
+ * Mantenimiento (F-08): el Galpon 2 tiene una rotura de malla reportada hace
+ * 14 horas, con la orden ya vencida (RN-04) y el galpon EN_RIESGO_SANITARIO.
+ *
  * Tambien crea un usuario de demo por cada rol (F-09). La contraseña de cada
  * uno es su nombre de usuario seguido de "123" (ej. operario / operario123).
  */
@@ -53,6 +61,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
     private final ReporteDiarioRepositoryPort reporteDiarioRepository;
     private final AlertaSanitariaRepositoryPort alertaSanitariaRepository;
     private final PesajeRepositoryPort pesajeRepository;
+    private final OrdenMantenimientoRepositoryPort ordenMantenimientoRepository;
     private final CifradorContrasenaPort cifrador;
     private final Clock clock;
 
@@ -63,6 +72,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
                                 ReporteDiarioRepositoryPort reporteDiarioRepository,
                                 AlertaSanitariaRepositoryPort alertaSanitariaRepository,
                                 PesajeRepositoryPort pesajeRepository,
+                                OrdenMantenimientoRepositoryPort ordenMantenimientoRepository,
                                 CifradorContrasenaPort cifrador,
                                 Clock clock) {
         this.galponRepository = galponRepository;
@@ -72,6 +82,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
         this.reporteDiarioRepository = reporteDiarioRepository;
         this.alertaSanitariaRepository = alertaSanitariaRepository;
         this.pesajeRepository = pesajeRepository;
+        this.ordenMantenimientoRepository = ordenMantenimientoRepository;
         this.cifrador = cifrador;
         this.clock = clock;
     }
@@ -106,6 +117,17 @@ public class DatosDemoInitializer implements CommandLineRunner {
         // Semana 3: estandar 190 g, 186 g es -2.1% (en rango). Semana 2: estandar 120 g, 113 g es -5.8%.
         pesaje("demo-p1", "lote-1", 186, 30, "operario", hoy.minusDays(7).atTime(7, 0));
         pesaje("demo-p2", "lote-3", 113, 30, "operario3", hoy.atTime(7, 15));
+
+        ordenVencida("demo-o1", "galpon-2", "operario2", LocalDateTime.now(clock).minusHours(14));
+    }
+
+    private void ordenVencida(String id, String galponId, String worker, LocalDateTime fechaReporte) {
+        ordenMantenimientoRepository.guardar(new OrdenMantenimiento(id, galponId, TipoDano.ROTURA_MALLA,
+                "Malla perimetral rota en el costado norte, entran aves silvestres", PrioridadOrden.ALTA, worker,
+                fechaReporte, fechaReporte.plus(FabricaOrdenMantenimiento.PLAZO_REPARACION)));
+        Galpon galpon = galponRepository.buscarPorId(galponId).orElseThrow();
+        galpon.marcarEnRiesgoSanitario();
+        galponRepository.guardar(galpon);
     }
 
     private void pesaje(String id, String loteId, double pesoPromedio, int muestra, String worker,

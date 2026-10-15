@@ -11,6 +11,8 @@ import TurnosPage from "./pages/TurnosPage";
 import RacionPage from "./pages/RacionPage";
 import PesajePage from "./pages/PesajePage";
 import RevisionPesajesPage from "./pages/RevisionPesajesPage";
+import ReportarDanoPage from "./pages/ReportarDanoPage";
+import OrdenesMantenimientoPage from "./pages/OrdenesMantenimientoPage";
 import "./App.css";
 
 export default function App() {
@@ -56,6 +58,22 @@ export default function App() {
               element={
                 <RutaProtegida permiso="REVISAR_PESAJES">
                   <RevisionPesajesPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="reportar-dano"
+              element={
+                <RutaProtegida permiso="REPORTAR_DANOS">
+                  <ReportarDanoPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="ordenes"
+              element={
+                <RutaProtegida permiso="ATENDER_ORDENES_MANTENIMIENTO">
+                  <OrdenesMantenimientoPage />
                 </RutaProtegida>
               }
             />

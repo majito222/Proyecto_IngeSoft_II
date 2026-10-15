@@ -1,5 +1,8 @@
 package com.avimanager.infrastructure.adapter.in.web;
 
+import com.avimanager.domain.exception.GalponAjenoException;
+import com.avimanager.domain.exception.OrdenNoDisponibleException;
+import com.avimanager.domain.exception.OrdenNoEncontradaException;
 import com.avimanager.domain.exception.AlertaNoEncontradaException;
 import com.avimanager.domain.exception.AlertaYaAtendidaException;
 import com.avimanager.domain.exception.CapacidadGalponExcedidaException;
@@ -34,7 +37,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({LoteNoEncontradoException.class, PesajeNoEncontradoException.class,
-            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class})
+            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class, OrdenNoEncontradaException.class})
     public ResponseEntity<Map<String, String>> manejarNoEncontrado(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
@@ -48,14 +51,15 @@ public class GlobalExceptionHandler {
 
     /** Reglas de galpones y lotes (F-11): la peticion es valida pero rompe una regla de negocio. */
     @ExceptionHandler({CapacidadGalponExcedidaException.class, GalponConLoteActivoException.class,
-            LoteYaFinalizadoException.class, UsuarioNoEsWorkerException.class, WorkerConTurnoAbiertoException.class})
+            LoteYaFinalizadoException.class, UsuarioNoEsWorkerException.class, WorkerConTurnoAbiertoException.class,
+            OrdenNoDisponibleException.class})
     public ResponseEntity<Map<String, String>> manejarConflictoDeGalpon(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
     }
 
     /** Tiene el permiso CERRAR_TURNO, pero el turno es de otro worker. */
-    @ExceptionHandler(TurnoAjenoException.class)
-    public ResponseEntity<Map<String, String>> manejarTurnoAjeno(TurnoAjenoException ex) {
+    @ExceptionHandler({TurnoAjenoException.class, GalponAjenoException.class})
+    public ResponseEntity<Map<String, String>> manejarRecursoAjeno(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("mensaje", ex.getMessage()));
     }
 
