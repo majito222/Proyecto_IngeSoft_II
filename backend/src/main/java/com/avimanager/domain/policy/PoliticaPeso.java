@@ -8,19 +8,20 @@ import java.util.Map;
  * Zootecnista apruebe el ajuste de la racion (F-07).
  *
  * Peso estandar en gramos por semana de edad: valores de referencia de las
- * guias de manejo de gallinas ponedoras comerciales. Son datos de demostracion
- * del proyecto y se pueden reemplazar por la tabla real de la granja.
+ * guias de manejo de gallinas ponedoras comerciales. La semana 0 es el pollito
+ * de un dia al llegar al galpon (unos 40 g). Son datos de demostracion del
+ * proyecto y se pueden reemplazar por la tabla real de la granja.
  */
 public final class PoliticaPeso {
 
     public static final double TOLERANCIA_PORCENTAJE = 5.0;
-    public static final int EDAD_MINIMA_SEMANAS = 1;
+    public static final int EDAD_MINIMA_SEMANAS = 0;
     public static final int EDAD_MAXIMA_SEMANAS = 80;
     private static final int INICIO_PESO_ADULTO_SEMANAS = 25;
     private static final double PESO_ADULTO_GRAMOS = 1900;
 
     private static final Map<Integer, Double> GRAMOS_POR_SEMANA = Map.ofEntries(
-            Map.entry(1, 70.0), Map.entry(2, 120.0), Map.entry(3, 190.0), Map.entry(4, 270.0),
+            Map.entry(0, 40.0), Map.entry(1, 70.0), Map.entry(2, 120.0), Map.entry(3, 190.0), Map.entry(4, 270.0),
             Map.entry(5, 360.0), Map.entry(6, 450.0), Map.entry(7, 540.0), Map.entry(8, 630.0),
             Map.entry(9, 720.0), Map.entry(10, 810.0), Map.entry(11, 890.0), Map.entry(12, 970.0),
             Map.entry(13, 1050.0), Map.entry(14, 1120.0), Map.entry(15, 1190.0), Map.entry(16, 1260.0),

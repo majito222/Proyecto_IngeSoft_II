@@ -1,5 +1,7 @@
 package com.avimanager.domain.model;
 
+import java.time.LocalDate;
+
 import com.avimanager.domain.exception.CapacidadGalponExcedidaException;
 import com.avimanager.domain.exception.GalponConLoteActivoException;
 
@@ -19,6 +21,7 @@ public class LoteBuilder {
     private Lote loteActivoDelGalpon;
     private Integer poblacionInicial;
     private Integer edadSemanas;
+    private LocalDate fechaIngreso;
 
     LoteBuilder() {
     }
@@ -48,6 +51,11 @@ public class LoteBuilder {
         return this;
     }
 
+    public LoteBuilder ingresoEl(LocalDate fechaIngreso) {
+        this.fechaIngreso = fechaIngreso;
+        return this;
+    }
+
     public Lote build() {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("El lote debe tener un identificador");
@@ -61,12 +69,16 @@ public class LoteBuilder {
         if (edadSemanas == null || edadSemanas < 0) {
             throw new IllegalArgumentException("La edad del lote en semanas no puede ser negativa");
         }
+        if (fechaIngreso == null) {
+            throw new IllegalArgumentException("La fecha de ingreso del lote es obligatoria");
+        }
         if (!galpon.admitePoblacion(poblacionInicial)) {
             throw new CapacidadGalponExcedidaException(galpon, poblacionInicial);
         }
         if (loteActivoDelGalpon != null && loteActivoDelGalpon.estaActivo()) {
             throw new GalponConLoteActivoException(galpon, loteActivoDelGalpon);
         }
-        return new Lote(id, galpon.getId(), poblacionInicial, poblacionInicial, edadSemanas, EstadoLote.ACTIVO);
+        return new Lote(id, galpon.getId(), poblacionInicial, poblacionInicial, edadSemanas, EstadoLote.ACTIVO,
+                fechaIngreso);
     }
 }

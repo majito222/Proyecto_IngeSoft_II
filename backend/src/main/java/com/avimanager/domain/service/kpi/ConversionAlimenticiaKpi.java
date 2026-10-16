@@ -42,6 +42,7 @@ public class ConversionAlimenticiaKpi implements CalculadoraKpi {
         double pesoAnteriorGramos;
         LocalDate desde;
         if (estimado) {
+            // Semana 0 = peso del pollito al llegar (PoliticaPeso).
             int semanaAnterior = Math.max(PoliticaPeso.EDAD_MINIMA_SEMANAS, ultimo.getEdadSemanas() - 1);
             pesoAnteriorGramos = PoliticaPeso.pesoEstandarGramos(semanaAnterior);
             desde = ultimo.getFecha().minusDays(7);
@@ -52,7 +53,7 @@ public class ConversionAlimenticiaKpi implements CalculadoraKpi {
         }
 
         Lote lote = datos.getLote();
-        double kgGanados = (ultimo.getPesoPromedioGramos() - pesoAnteriorGramos) * lote.getPoblacionActual() / 1000.0;
+        double kgGanados = (ultimo.getPesoPromedioGramos() - pesoAnteriorGramos) * datos.getAvesVivas() / 1000.0;
         double kgAlimento = datos.getReportes().stream()
                 .filter(r -> r.getFecha().isAfter(desde) && !r.getFecha().isAfter(ultimo.getFecha()))
                 .filter(r -> r.getConsumoAlimentoKg() != null)

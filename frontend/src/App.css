@@ -1318,3 +1318,36 @@ select:focus {
 .consolidado[open] summary {
   margin-bottom: 12px;
 }
+
+/* --- RN-06: conteo fisico antes de consolidar --- */
+
+.conteo-fisico h3 {
+  margin: 0 0 6px;
+}
+
+.conteo-fisico__campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 16px;
+}
+
+.conteo-fisico__acciones {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.conteo-fisico__acciones .boton-primario {
+  width: auto;
+}
+
+.conteo-fisico__acta {
+  display: inline-block;
+  margin-top: 12px;
+  text-decoration: none;
+}
+
+.foto-consolidada {
+  margin: 0;
+  font-size: 14px;
+}

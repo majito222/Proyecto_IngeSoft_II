@@ -58,6 +58,6 @@ public class KpiController {
     public ReporteConsolidadoResponse consolidar(@RequestBody ConsolidarReporteRequest request,
                                                  @AuthenticationPrincipal Jwt jwt) {
         return ReporteConsolidadoResponse.desde(consolidarReporteUseCase.consolidar(
-                new ConsolidarReporteCommand(request.getFecha(), jwt.getSubject())));
+                new ConsolidarReporteCommand(request.getFecha(), jwt.getSubject(), request.getConteoFisico())));
     }
 }

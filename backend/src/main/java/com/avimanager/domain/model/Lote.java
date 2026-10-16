@@ -2,6 +2,8 @@ package com.avimanager.domain.model;
 
 import com.avimanager.domain.exception.LoteYaFinalizadoException;
 
+import java.time.LocalDate;
+
 /**
  * Entidad de dominio: Lote de aves dentro de un galpon.
  * poblacionInicial es la poblacion con la que ingreso el lote (base de la
@@ -19,14 +21,31 @@ public class Lote {
     private int poblacionActual;
     private final int edadSemanas;
     private EstadoLote estado;
+    private final LocalDate fechaIngreso;
 
     public Lote(String id, String galponId, int poblacionInicial, int poblacionActual, int edadSemanas, EstadoLote estado) {
+        this(id, galponId, poblacionInicial, poblacionActual, edadSemanas, estado, null);
+    }
+
+    /** @param fechaIngreso dia en que el lote llego al galpon; null si no se conoce (existe desde siempre) */
+    public Lote(String id, String galponId, int poblacionInicial, int poblacionActual, int edadSemanas, EstadoLote estado,
+                LocalDate fechaIngreso) {
         this.id = id;
         this.galponId = galponId;
         this.poblacionInicial = poblacionInicial;
         this.poblacionActual = poblacionActual;
         this.edadSemanas = edadSemanas;
         this.estado = estado;
+        this.fechaIngreso = fechaIngreso;
+    }
+
+    /** F-04: un lote solo aparece en los indicadores de los dias en que ya estaba en el galpon. */
+    public boolean existiaEl(LocalDate fecha) {
+        return fechaIngreso == null || !fechaIngreso.isAfter(fecha);
+    }
+
+    public LocalDate getFechaIngreso() {
+        return fechaIngreso;
     }
 
     public static LoteBuilder builder() {

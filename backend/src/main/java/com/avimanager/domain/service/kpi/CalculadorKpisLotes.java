@@ -1,8 +1,10 @@
 package com.avimanager.domain.service.kpi;
 
+import com.avimanager.domain.model.EstadoReporte;
 import com.avimanager.domain.model.Galpon;
 import com.avimanager.domain.model.KpisLote;
 import com.avimanager.domain.model.Lote;
+import com.avimanager.domain.model.ReporteDiario;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 import com.avimanager.domain.port.out.PesajeRepositoryPort;
@@ -39,18 +41,34 @@ public class CalculadorKpisLotes {
     public List<KpisLote> calcular(LocalDate fecha) {
         return loteRepository.listarTodos().stream()
                 .filter(Lote::estaActivo)
+                .filter(lote -> lote.existiaEl(fecha))
                 .map(lote -> calcular(lote, fecha))
                 .sorted(Comparator.comparing(KpisLote::getGalponNombre, Galpon.ORDEN_POR_NOMBRE))
                 .toList();
     }
 
     private KpisLote calcular(Lote lote, LocalDate fecha) {
-        DatosKpiLote datos = new DatosKpiLote(lote, fecha, reporteDiarioRepository.listarPorLote(lote.getId()),
-                pesajeRepository.listarPorLote(lote.getId()));
+        List<ReporteDiario> reportes = reporteDiarioRepository.listarPorLote(lote.getId());
+        int avesVivas = avesVivasAl(lote, fecha, reportes);
+        DatosKpiLote datos = new DatosKpiLote(lote, fecha, reportes, pesajeRepository.listarPorLote(lote.getId()),
+                avesVivas);
         String galponNombre = galponRepository.buscarPorId(lote.getGalponId())
                 .map(Galpon::getNombre)
                 .orElse(lote.getGalponId());
-        return new KpisLote(lote.getId(), lote.getGalponId(), galponNombre, lote.getPoblacionActual(),
+        return new KpisLote(lote.getId(), lote.getGalponId(), galponNombre, avesVivas,
                 calculadoras.stream().map(c -> c.calcular(datos)).toList());
+    }
+
+    /**
+     * Aves vivas al terminar la fecha consultada: las de hoy mas las bajas que se
+     * descontaron en dias posteriores (reportes consolidados despues de esa fecha).
+     * Para hoy coincide con la poblacion actual del lote.
+     */
+    private static int avesVivasAl(Lote lote, LocalDate fecha, List<ReporteDiario> reportes) {
+        int bajasPosteriores = reportes.stream()
+                .filter(r -> r.getEstado() == EstadoReporte.CONSOLIDADO && r.getFecha().isAfter(fecha))
+                .mapToInt(r -> r.getCantidadBajas() == null ? 0 : r.getCantidadBajas())
+                .sum();
+        return lote.getPoblacionActual() + bajasPosteriores;
     }
 }

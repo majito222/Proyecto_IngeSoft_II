@@ -11,6 +11,7 @@ import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.GalponNoEncontradoException;
 import com.avimanager.domain.exception.GalponYaExisteException;
 import com.avimanager.domain.exception.InsumoNoEncontradoException;
+import com.avimanager.domain.exception.InventarioNoConciliadoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
 import com.avimanager.domain.exception.LoteYaFinalizadoException;
 import com.avimanager.domain.exception.PesajeNoEncontradoException;
@@ -30,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -69,6 +71,22 @@ public class GlobalExceptionHandler {
     }
 
     /** Tiene el permiso CERRAR_TURNO, pero el turno es de otro worker. */
+    /** RN-06: ademas del mensaje, devuelve las diferencias para mostrarlas en una tabla. */
+    @ExceptionHandler(InventarioNoConciliadoException.class)
+    public ResponseEntity<Map<String, Object>> manejarInventarioNoConciliado(InventarioNoConciliadoException ex) {
+        List<Map<String, Object>> diferencias = ex.getDiferencias().stream()
+                .map(d -> Map.<String, Object>of(
+                        "insumoId", d.getInsumoId(),
+                        "insumoNombre", d.getInsumoNombre(),
+                        "unidad", d.getUnidad(),
+                        "stockSistema", d.getStockSistema(),
+                        "stockContado", d.getStockContado(),
+                        "diferencia", d.getDiferencia()))
+                .toList();
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("mensaje", ex.getMessage(), "diferencias", diferencias));
+    }
+
     @ExceptionHandler(TurnoAjenoException.class)
     public ResponseEntity<Map<String, String>> manejarTurnoAjeno(TurnoAjenoException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("mensaje", ex.getMessage()));

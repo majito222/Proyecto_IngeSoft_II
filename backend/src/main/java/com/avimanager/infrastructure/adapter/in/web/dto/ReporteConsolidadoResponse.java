@@ -5,6 +5,7 @@ import com.avimanager.domain.model.ReporteConsolidado;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /** F-04.1: un reporte diario consolidado. */
 public class ReporteConsolidadoResponse {
@@ -16,6 +17,7 @@ public class ReporteConsolidadoResponse {
     private final LocalDateTime fechaHora;
     private final int turnosAprobados;
     private final List<KpisLoteResponse> lotes;
+    private final Map<String, Double> conteoFisico;
 
     private ReporteConsolidadoResponse(ReporteConsolidado reporte) {
         this.id = reporte.getId();
@@ -25,6 +27,7 @@ public class ReporteConsolidadoResponse {
         this.fechaHora = reporte.getFechaHora();
         this.turnosAprobados = reporte.getTurnosAprobados();
         this.lotes = reporte.getLotes().stream().map(KpisLoteResponse::desde).toList();
+        this.conteoFisico = reporte.getConteoFisico();
     }
 
     public static ReporteConsolidadoResponse desde(ReporteConsolidado reporte) {
@@ -57,5 +60,9 @@ public class ReporteConsolidadoResponse {
 
     public List<KpisLoteResponse> getLotes() {
         return lotes;
+    }
+
+    public Map<String, Double> getConteoFisico() {
+        return conteoFisico;
     }
 }

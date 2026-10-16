@@ -32,7 +32,7 @@ class CalculadorasKpiTest {
     }
 
     private DatosKpiLote datos(List<ReporteDiario> reportes, List<Pesaje> pesajes) {
-        return new DatosKpiLote(lote, HOY, reportes, pesajes);
+        return new DatosKpiLote(lote, HOY, reportes, pesajes, lote.getPoblacionActual());
     }
 
     @Test

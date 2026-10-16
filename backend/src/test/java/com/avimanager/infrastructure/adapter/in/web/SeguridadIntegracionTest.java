@@ -850,17 +850,55 @@ class SeguridadIntegracionTest {
     void unDiaSinTurnosPendientesSeConsolidaUnaSolaVez_F04() throws Exception {
         String admin = token("admin");
         String hace10Dias = java.time.LocalDate.now().minusDays(10).toString();
+        String cuerpo = "{\"fecha\":\"" + hace10Dias + "\",\"conteoFisico\":" + conteoQueCuadra(admin) + "}";
         mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"" + hace10Dias + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.consolidadoPorNombre").value("Ana Administradora"))
-                .andExpect(jsonPath("$.lotes.length()").value(3));
+                .andExpect(jsonPath("$.lotes.length()").value(3))
+                .andExpect(jsonPath("$.conteoFisico['insumo-alimento']").value(5005.0));
         mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"" + hace10Dias + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
                 .andExpect(status().isConflict());
         mvc.perform(get("/api/kpis/consolidados").header("Authorization", "Bearer " + token("dueno")))
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].fecha").value(hace10Dias));
+    }
+
+    /** RN-06: si el conteo fisico no cuadra, no se consolida hasta registrar el Acta de Ajuste. */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void conElInventarioDescuadradoNoSeConsolidaHastaElActaDeAjuste_RN06() throws Exception {
+        String admin = token("admin");
+        String hace10Dias = java.time.LocalDate.now().minusDays(10).toString();
+        String conteoDescuadrado = conteoQueCuadra(admin).replace("\"insumo-alimento\":5005.0", "\"insumo-alimento\":4950.0");
+        String cuerpo = "{\"fecha\":\"" + hace10Dias + "\",\"conteoFisico\":" + conteoDescuadrado + "}";
+
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value(org.hamcrest.Matchers.containsString("Acta de Ajuste")))
+                .andExpect(jsonPath("$.diferencias.length()").value(1))
+                .andExpect(jsonPath("$.diferencias[0].insumoId").value("insumo-alimento"))
+                .andExpect(jsonPath("$.diferencias[0].diferencia").value(-55.0));
+
+        mvc.perform(post("/api/inventario/insumo-alimento/ajustes").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stockContado\":4950,\"justificacion\":\"Conteo fisico: 2 bultos rotos por humedad\"}"))
+                .andExpect(status().isCreated());
+
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isCreated());
+    }
+
+    /** Arma el conteo fisico igual al stock actual de cada insumo: {"insumo-alimento":5005.0,...}. */
+    private String conteoQueCuadra(String token) throws Exception {
+        JsonNode insumos = json.readTree(mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString());
+        java.util.Map<String, Double> conteo = new java.util.LinkedHashMap<>();
+        insumos.forEach(i -> conteo.put(i.get("id").asText(), i.get("stock").asDouble()));
+        return json.writeValueAsString(conteo);
     }
 
     private String token(String username) throws Exception {

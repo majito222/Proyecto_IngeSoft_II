@@ -35,8 +35,13 @@ class RacionTablaEstandarTest {
     }
 
     @Test
+    void losPollitosRecienLlegadosComenComoEnLaPrimeraSemana() {
+        assertThat(tabla.gramosPorAve(loteDe(0))).isEqualTo(10.0);
+    }
+
+    @Test
     void rechazaEdadesFueraDeLaTabla() {
-        assertThatThrownBy(() -> tabla.gramosPorAve(loteDe(0)))
+        assertThatThrownBy(() -> tabla.gramosPorAve(loteDe(-1)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("fuera de la tabla");
         assertThatThrownBy(() -> tabla.gramosPorAve(loteDe(81)))
                 .isInstanceOf(IllegalArgumentException.class);

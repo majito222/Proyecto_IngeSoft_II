@@ -34,6 +34,7 @@ public class CalcularRacionService implements CalcularRacionUseCase {
     @Override
     public List<RacionDiaria> racionesDelDia() {
         return loteRepository.listarTodos().stream()
+                .filter(Lote::estaActivo)
                 .map(this::calcular)
                 .sorted(Comparator.comparing(RacionDiaria::getGalponId))
                 .toList();

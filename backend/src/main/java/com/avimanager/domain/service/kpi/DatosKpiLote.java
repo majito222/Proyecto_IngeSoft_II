@@ -14,12 +14,19 @@ public class DatosKpiLote {
     private final LocalDate fecha;
     private final List<ReporteDiario> reportes;
     private final List<Pesaje> pesajes;
+    private final int avesVivas;
 
-    public DatosKpiLote(Lote lote, LocalDate fecha, List<ReporteDiario> reportes, List<Pesaje> pesajes) {
+    /** @param avesVivas aves vivas del lote al terminar la fecha consultada (no las de hoy) */
+    public DatosKpiLote(Lote lote, LocalDate fecha, List<ReporteDiario> reportes, List<Pesaje> pesajes, int avesVivas) {
         this.lote = lote;
         this.fecha = fecha;
         this.reportes = List.copyOf(reportes);
         this.pesajes = List.copyOf(pesajes);
+        this.avesVivas = avesVivas;
+    }
+
+    public int getAvesVivas() {
+        return avesVivas;
     }
 
     public Lote getLote() {

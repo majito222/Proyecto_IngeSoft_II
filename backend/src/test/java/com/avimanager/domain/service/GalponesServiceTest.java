@@ -49,7 +49,8 @@ class GalponesServiceTest {
         usuarios = new FakeUsuarioRepository();
         turnos = new FakeTurnoRepository();
         registrarGalpon = new RegistrarGalponService(galpones);
-        registrarLote = new RegistrarLoteService(galpones, lotes);
+        registrarLote = new RegistrarLoteService(galpones, lotes,
+                java.time.Clock.fixed(java.time.Instant.parse("2026-03-10T12:00:00Z"), java.time.ZoneOffset.UTC));
         finalizarLote = new FinalizarLoteService(lotes);
         asignarWorker = new AsignarWorkerService(usuarios, galpones, turnos);
         consultarGalpones = new ConsultarGalponesService(galpones, lotes, usuarios);

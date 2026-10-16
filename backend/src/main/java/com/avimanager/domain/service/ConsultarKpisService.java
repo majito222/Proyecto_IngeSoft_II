@@ -24,7 +24,10 @@ public class ConsultarKpisService implements ConsultarKpisUseCase {
 
     @Override
     public List<KpisLote> calcularKpis(LocalDate fecha) {
-        return calculadorKpis.calcular(fecha);
+        // Un dia consolidado es una foto inmutable: se devuelve lo guardado, sin recalcular.
+        return reporteConsolidadoRepository.buscarPorFecha(fecha)
+                .map(ReporteConsolidado::getLotes)
+                .orElseGet(() -> calculadorKpis.calcular(fecha));
     }
 
     @Override
