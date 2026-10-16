@@ -260,14 +260,6 @@ mvn test
 Los nombres de las pruebas indican la regla que verifican, por ejemplo
 `bloqueaElCierreYGeneraAlertaSanitariaCuandoSuperaElUmbral_RN01_RN07`.
 
-## Limitaciones conocidas
-
-- Persistencia en memoria, sin transacciones: los datos se pierden al reiniciar.
-- Las notificaciones se escriben en el log del backend.
-- Cerrar sesión descarta el token en el navegador; el token expira a las 8 horas.
-- La edad del lote se guarda al registrarlo y no avanza sola.
-- Los usuarios vienen precargados; su gestión es la funcionalidad F-12.
-
 ## Flujo de trabajo
 
 Una rama por funcionalidad (`feature/F-xx-...`, `fix/...`, `refactor/...`) y
