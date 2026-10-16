@@ -15,7 +15,7 @@ public class LoteResponse {
     private LoteResponse(Lote lote) {
         this.id = lote.getId();
         this.galponId = lote.getGalponId();
-        this.poblacionInicial = lote.getPoblacionInicialDia();
+        this.poblacionInicial = lote.getPoblacionInicial();
         this.poblacionActual = lote.getPoblacionActual();
         this.edadSemanas = lote.getEdadSemanas();
         this.estado = lote.getEstado().name();

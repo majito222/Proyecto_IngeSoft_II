@@ -64,7 +64,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/pesajes")
                             .hasAuthority(Permiso.REGISTRAR_PESO.name())
                         .requestMatchers(HttpMethod.GET, "/api/pesajes")
-                            .hasAuthority(Permiso.REVISAR_PESAJES.name())
+                            .hasAuthority(Permiso.VER_PESAJES.name())
                         .requestMatchers(HttpMethod.POST, "/api/pesajes/*/revision")
                             .hasAuthority(Permiso.REVISAR_PESAJES.name())
                         .requestMatchers(HttpMethod.GET, "/api/alertas")
@@ -87,7 +87,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/danos")
                             .hasAuthority(Permiso.REPORTAR_DANOS.name())
                         .requestMatchers(HttpMethod.GET, "/api/ordenes-mantenimiento")
-                            .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())
+                            .hasAuthority(Permiso.VER_ORDENES_MANTENIMIENTO.name())
                         .requestMatchers(HttpMethod.POST, "/api/ordenes-mantenimiento/*/inicio",
                                 "/api/ordenes-mantenimiento/*/certificacion")
                             .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())

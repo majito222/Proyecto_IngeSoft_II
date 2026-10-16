@@ -48,8 +48,10 @@ public class ReglaMortalidad extends ReglaCierreTurno {
         Lote lote = contexto.getLote();
         ReporteDiario reporte = contexto.reporte();
 
+        // RN-07: base = poblacion inicial DEL DIA. Las bajas de hoy aun no se han
+        // descontado (se descuentan al consolidar), asi que son las aves vivas actuales.
         double porcentajeMortalidad = PoliticaMortalidad.calcularPorcentaje(
-                contexto.getComando().getCantidadBajas(), lote.getPoblacionInicialDia());
+                contexto.getComando().getCantidadBajas(), lote.getPoblacionActual());
         reporte.registrarPorcentajeMortalidad(porcentajeMortalidad);
 
         if (!PoliticaMortalidad.superaUmbralCritico(porcentajeMortalidad)) {

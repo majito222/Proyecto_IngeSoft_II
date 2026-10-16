@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { consultarReferenciaPesaje, registrarPesaje } from "../api/pesajes";
-import { useSesion } from "../auth/SesionContext";
 import EstadoPesaje, { TOLERANCIA_PESO, formatearDesviacion, formatearGramos } from "../components/EstadoPesaje";
 import { formatearFecha } from "../components/EstadoTurno";
 
@@ -11,7 +9,6 @@ import { formatearFecha } from "../components/EstadoTurno";
  * registro se resalta en amarillo y queda pendiente para el zootecnista.
  */
 export default function PesajePage() {
-  const { tienePermiso } = useSesion();
   const [referencia, setReferencia] = useState(null); // { datos } | { status, aviso } | { errorRed }
 
   const cargar = useCallback(async () => {
@@ -29,8 +26,6 @@ export default function PesajePage() {
   }, [cargar]);
 
   const datos = referencia?.datos;
-  // El administrador no tiene galpón asignado: revisa los pesajes de todos.
-  const esSupervisorSinGalpon = referencia?.status === 409 && tienePermiso("REVISAR_PESAJES");
 
   function registrado(pesaje) {
     setReferencia(({ datos: d }) => ({ datos: { ...d, pesajeDeLaSemana: pesaje } }));
@@ -52,20 +47,7 @@ export default function PesajePage() {
         </div>
       )}
 
-      {esSupervisorSinGalpon && (
-        <div className="tarjeta resultado resultado--exito aviso-supervisor">
-          <h3>Revisas los pesajes de todos los galpones</h3>
-          <p>
-            Como administrador no tienes un galpón asignado, así que no registras pesajes. Los workers pesan su
-            galpón y tú puedes revisar los que se salen de rango.
-          </p>
-          <Link to="/pesajes" className="boton-primario enlace-boton">
-            Ir a Revisión de pesajes
-          </Link>
-        </div>
-      )}
-
-      {referencia?.aviso && !esSupervisorSinGalpon && (
+      {referencia?.aviso && (
         <div className="tarjeta resultado resultado--advertencia">
           <h3>No puedes registrar el pesaje</h3>
           <p>{referencia.aviso}</p>

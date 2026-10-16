@@ -43,6 +43,6 @@ public class DanoController {
     public OrdenMantenimientoResponse reportar(@RequestBody ReportarDanoRequest request,
                                                @AuthenticationPrincipal Jwt jwt) {
         return OrdenMantenimientoResponse.desde(reportarDanoUseCase.reportar(new ReportarDanoCommand(
-                jwt.getSubject(), request.getGalponId(), request.getTipoDano(), request.getDescripcion())));
+                jwt.getSubject(), request.getTipoDano(), request.getDescripcion())));
     }
 }

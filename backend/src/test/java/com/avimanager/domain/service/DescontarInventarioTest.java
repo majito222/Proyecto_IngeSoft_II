@@ -14,6 +14,7 @@ import com.avimanager.domain.service.cierre.ReglaCierreTurno;
 import com.avimanager.domain.service.cierre.ReglaConsolidacion;
 import com.avimanager.domain.service.cierre.ReglaDescontarInventario;
 import com.avimanager.domain.service.cierre.ReglaMortalidad;
+import com.avimanager.domain.service.cierre.ReglaValoresValidos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * F-03.3: el eslabon ReglaDescontarInventario (Chain of Responsibility) dentro de
@@ -49,7 +51,8 @@ class DescontarInventarioTest {
         turnos = new FakeTurnoRepository();
 
         ReglaCierreTurno reglas = new ReglaCamposObligatorios();
-        reglas.enlazar(new ReglaDescontarInventario(inventario, publicador))
+        reglas.enlazar(new ReglaValoresValidos())
+                .enlazar(new ReglaDescontarInventario(inventario, publicador))
                 .enlazar(new ReglaMortalidad(lotes, reportes, alertas, turnos, publicador))
                 .enlazar(new ReglaConsolidacion(lotes, reportes, turnos));
         service = new CerrarTurnoService(lotes, turnos, reglas, RELOJ_FIJO);
@@ -127,6 +130,28 @@ class DescontarInventarioTest {
         service.cerrarTurno(new CerrarTurnoCommand("lote-1", 45.0, 3, null, 12, null, "operario"));
 
         assertThat(stockDeAlimento()).isEqualTo(8000);
+    }
+
+    /**
+     * Antes de ReglaValoresValidos, unas bajas negativas descontaban la bodega y
+     * luego fallaban en la regla de mortalidad: al reintentar se descontaba dos veces.
+     */
+    @Test
+    void conValoresInvalidosNoSeDescuentaNadaYElTurnoSigueAbierto() {
+        bodegaConAlimento(8000);
+
+        assertThatThrownBy(() -> cerrarTurno(45.0, -5)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bajas");
+        assertThatThrownBy(() -> cerrarTurno(45.0, 501)).as("mas bajas que aves vivas")
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> cerrarTurno(-10.0, 0)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("consumo");
+        assertThatThrownBy(() -> service.cerrarTurno(
+                new CerrarTurnoCommand("lote-1", 45.0, 0, null, -1, null, "operario")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("producción");
+
+        assertThat(stockDeAlimento()).isEqualTo(8000);
+        assertThat(turnos.buscarPorLoteYFecha("lote-1", HOY).orElseThrow().estaAbierto()).isTrue();
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.avimanager.infrastructure.adapter.in.web;
 
-import com.avimanager.domain.exception.GalponAjenoException;
 import com.avimanager.domain.exception.OrdenNoDisponibleException;
 import com.avimanager.domain.exception.OrdenNoEncontradaException;
 import com.avimanager.domain.exception.AlertaNoEncontradaException;
@@ -10,6 +9,7 @@ import com.avimanager.domain.exception.CredencialesInvalidasException;
 import com.avimanager.domain.exception.GalponConLoteActivoException;
 import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.GalponNoEncontradoException;
+import com.avimanager.domain.exception.GalponYaExisteException;
 import com.avimanager.domain.exception.InsumoNoEncontradoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
 import com.avimanager.domain.exception.LoteYaFinalizadoException;
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     }
 
     /** Reglas de galpones y lotes (F-11): la peticion es valida pero rompe una regla de negocio. */
-    @ExceptionHandler({CapacidadGalponExcedidaException.class, GalponConLoteActivoException.class,
+    @ExceptionHandler({CapacidadGalponExcedidaException.class, GalponConLoteActivoException.class, GalponYaExisteException.class,
             LoteYaFinalizadoException.class, UsuarioNoEsWorkerException.class, WorkerConTurnoAbiertoException.class,
             OrdenNoDisponibleException.class})
     public ResponseEntity<Map<String, String>> manejarConflictoDeGalpon(RuntimeException ex) {
@@ -69,8 +69,8 @@ public class GlobalExceptionHandler {
     }
 
     /** Tiene el permiso CERRAR_TURNO, pero el turno es de otro worker. */
-    @ExceptionHandler({TurnoAjenoException.class, GalponAjenoException.class})
-    public ResponseEntity<Map<String, String>> manejarRecursoAjeno(RuntimeException ex) {
+    @ExceptionHandler(TurnoAjenoException.class)
+    public ResponseEntity<Map<String, String>> manejarTurnoAjeno(TurnoAjenoException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("mensaje", ex.getMessage()));
     }
 

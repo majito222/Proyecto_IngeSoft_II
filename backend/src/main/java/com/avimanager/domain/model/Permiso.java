@@ -29,9 +29,12 @@ public enum Permiso {
     // F-06 / F-07: alimentacion y crecimiento
     VER_RACION,
     REGISTRAR_PESO,
-    // F-07: el Zootecnista revisa los pesajes fuera de rango (RN-02)
+    // F-07: ver los pesajes es supervision; aprobar el ajuste es del Zootecnista (RN-02)
+    VER_PESAJES,
     REVISAR_PESAJES,
-    // F-08: infraestructura y mantenimiento
+    // F-08: infraestructura y mantenimiento. Ver la bandeja es supervision;
+    // iniciar y certificar la reparacion es del Tecnico (RN-04)
     REPORTAR_DANOS,
+    VER_ORDENES_MANTENIMIENTO,
     ATENDER_ORDENES_MANTENIMIENTO
 }

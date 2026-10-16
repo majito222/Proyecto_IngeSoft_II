@@ -433,23 +433,6 @@ button {
   margin: 0;
 }
 
-.aviso-supervisor {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.aviso-supervisor h3,
-.aviso-supervisor p {
-  margin: 0;
-}
-
-.enlace-boton {
-  display: block;
-  text-align: center;
-  text-decoration: none;
-}
-
 /* --- Panel de turnos (F-10.3) --- */
 
 .filtro-estados {

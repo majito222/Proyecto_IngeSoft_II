@@ -33,7 +33,7 @@ public class ConsultarGalponesService implements ConsultarGalponesUseCase {
     public List<ResumenGalpon> listarGalpones() {
         List<Usuario> workers = listarWorkers();
         return galponRepository.listarTodos().stream()
-                .sorted(Comparator.comparing(Galpon::getNombre))
+                .sorted(Comparator.comparing(Galpon::getNombre, Galpon.ORDEN_POR_NOMBRE))
                 .map(galpon -> new ResumenGalpon(
                         galpon,
                         loteRepository.buscarPorGalpon(galpon.getId()).orElse(null),

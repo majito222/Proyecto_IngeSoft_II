@@ -3,6 +3,7 @@ package com.avimanager.domain.service;
 import com.avimanager.domain.exception.CapacidadGalponExcedidaException;
 import com.avimanager.domain.exception.GalponConLoteActivoException;
 import com.avimanager.domain.exception.GalponNoEncontradoException;
+import com.avimanager.domain.exception.GalponYaExisteException;
 import com.avimanager.domain.exception.UsuarioNoEncontradoException;
 import com.avimanager.domain.exception.UsuarioNoEsWorkerException;
 import com.avimanager.domain.exception.WorkerConTurnoAbiertoException;
@@ -67,6 +68,30 @@ class GalponesServiceTest {
 
         assertThat(galpones.buscarPorId(galpon.getId())).contains(galpon);
         assertThat(galpon.getCapacidadMaxima()).isEqualTo(750);
+    }
+
+    @Test
+    void losGalponesYLotesNuevosTienenCodigosLegiblesYConsecutivos() {
+        Galpon galpon = registrarGalpon.registrarGalpon(new RegistrarGalponCommand("Galpón 3", 750));
+        Lote lote = registrarLote.registrarLote(new RegistrarLoteCommand(galpon.getId(), 700, 1));
+
+        assertThat(galpon.getId()).isEqualTo("galpon-3");
+        assertThat(lote.getId()).isEqualTo("lote-2");
+    }
+
+    @Test
+    void noSeRepiteElNombreDeUnGalponAunqueCambienTildesOMayusculas() {
+        assertThatThrownBy(() -> registrarGalpon.registrarGalpon(new RegistrarGalponCommand("  galpon 1 ", 500)))
+                .isInstanceOf(GalponYaExisteException.class);
+        assertThat(galpones.listarTodos()).hasSize(2);
+    }
+
+    @Test
+    void losGalponesSeOrdenanPorNombreSinImportarLasTildes() {
+        registrarGalpon.registrarGalpon(new RegistrarGalponCommand("Bodega norte", 300));
+
+        assertThat(consultarGalpones.listarGalpones()).extracting(r -> r.getGalpon().getNombre())
+                .containsExactly("Bodega norte", "Galpón 1", "Galpón 2");
     }
 
     @Test

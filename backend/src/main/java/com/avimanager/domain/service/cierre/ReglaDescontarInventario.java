@@ -17,7 +17,7 @@ import java.util.Optional;
  * para que el Administrador y el Dueño sean notificados.
  *
  * Nunca detiene el cierre: siempre pasa al siguiente eslabon. Va despues de
- * ReglaCamposObligatorios (el consumo ya esta validado) y antes de ReglaMortalidad,
+ * ReglaValoresValidos (el consumo ya esta validado) y antes de ReglaMortalidad,
  * para que el alimento se descuente aunque el turno quede bloqueado por una
  * alerta sanitaria (ese turno lo cierra luego el veterinario, sin pasar por la cadena).
  */

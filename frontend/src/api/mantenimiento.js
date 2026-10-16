@@ -5,11 +5,11 @@ export function consultarGalponesParaReporte() {
   return apiFetch("/danos/referencia");
 }
 
-// F-08.2: reportar un daño. Sin galponId se usa el galpón asignado al worker.
-export function reportarDano({ galponId, tipoDano, descripcion }) {
+// F-08.2: el worker reporta un daño en su galpón asignado.
+export function reportarDano({ tipoDano, descripcion }) {
   return apiFetch("/danos", {
     method: "POST",
-    body: JSON.stringify({ galponId, tipoDano, descripcion }),
+    body: JSON.stringify({ tipoDano, descripcion }),
   });
 }
 

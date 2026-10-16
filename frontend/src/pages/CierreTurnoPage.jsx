@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { cerrarTurno, consultarTurnoActual, iniciarTurno } from "../api/turnos";
 import { useSesion } from "../auth/SesionContext";
 import CierreTurnoForm from "../components/CierreTurnoForm";
@@ -11,7 +10,7 @@ import ResultadoTurno from "../components/ResultadoTurno";
  * F-01 / F-02: con el turno ABIERTO diligencia el cierre.
  */
 export default function CierreTurnoPage() {
-  const { usuario, tienePermiso } = useSesion();
+  const { usuario } = useSesion();
   const [actual, setActual] = useState(null); // { cargando } | { datos } | { aviso } | { errorRed }
   const [iniciando, setIniciando] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -63,8 +62,6 @@ export default function CierreTurnoPage() {
   const turno = datos?.turnoDeHoy;
   // Solo el responsable puede cerrar su turno (trazabilidad, F-10).
   const esMio = turno?.responsableUsername === usuario.username;
-  // El administrador no tiene galpón asignado: supervisa desde el Panel de turnos (F-10.3).
-  const esSupervisorSinGalpon = actual?.status === 409 && tienePermiso("VER_TURNOS");
 
   return (
     <div className="pagina">
@@ -82,20 +79,7 @@ export default function CierreTurnoPage() {
         </div>
       )}
 
-      {esSupervisorSinGalpon && (
-        <div className="tarjeta resultado resultado--exito aviso-supervisor">
-          <h3>Supervisas los turnos desde el panel</h3>
-          <p>
-            Como administrador no tienes un galpón asignado, así que no inicias ni cierras turnos propios.
-            Para ver el estado de los turnos de los workers usa el Panel de turnos.
-          </p>
-          <Link to="/turnos" className="boton-primario enlace-boton">
-            Ir al Panel de turnos
-          </Link>
-        </div>
-      )}
-
-      {actual?.aviso && !esSupervisorSinGalpon && (
+      {actual?.aviso && (
         <div className="tarjeta resultado resultado--advertencia">
           <h3>No puedes iniciar turno</h3>
           <p>{actual.aviso}</p>
