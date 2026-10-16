@@ -22,4 +22,9 @@ class FakeReporteDiarioRepository implements ReporteDiarioRepositoryPort {
     public Optional<ReporteDiario> buscarPorId(String reporteId) {
         return guardados.stream().filter(r -> r.getId().equals(reporteId)).findFirst();
     }
+
+    @Override
+    public List<ReporteDiario> listarPorLote(String loteId) {
+        return guardados.stream().filter(r -> r.getLoteId().equals(loteId)).toList();
+    }
 }

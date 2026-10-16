@@ -1280,3 +1280,58 @@ select:focus {
     color: #8fd6a8;
   }
 }
+
+/* --- Indicadores (F-04) --- */
+
+.kpi__estimado {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ambar);
+  text-transform: uppercase;
+}
+
+.kpi__sin-dato {
+  color: var(--texto-suave);
+}
+
+.tabla-turnos tfoot td {
+  padding: 10px 12px;
+  font-weight: 700;
+  border-top: 2px solid var(--borde);
+}
+
+.consolidados {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.consolidados h2 {
+  font-size: 20px;
+  color: var(--verde-oscuro);
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .consolidados h2 {
+    color: #8fd6a8;
+  }
+}
+
+.consolidado summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  cursor: pointer;
+}
+
+.consolidado summary span {
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.consolidado[open] summary {
+  margin-bottom: 12px;
+}

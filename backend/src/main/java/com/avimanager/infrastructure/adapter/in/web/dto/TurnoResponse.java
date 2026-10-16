@@ -24,6 +24,8 @@ public class TurnoResponse {
     private final Double porcentajeMortalidad;
     private final String reporteId;
     private final String alertaId;
+    private final String aprobadoPor;
+    private final LocalDateTime fechaAprobacion;
 
     private TurnoResponse(ResumenTurno resumen) {
         Turno turno = resumen.getTurno();
@@ -40,6 +42,8 @@ public class TurnoResponse {
         this.porcentajeMortalidad = turno.getPorcentajeMortalidad();
         this.reporteId = turno.getReporteDiarioId();
         this.alertaId = turno.getAlertaSanitariaId();
+        this.aprobadoPor = turno.getAprobadoPor();
+        this.fechaAprobacion = turno.getFechaAprobacion();
     }
 
     public static TurnoResponse desde(ResumenTurno resumen) {
@@ -96,5 +100,13 @@ public class TurnoResponse {
 
     public String getAlertaId() {
         return alertaId;
+    }
+
+    public String getAprobadoPor() {
+        return aprobadoPor;
+    }
+
+    public LocalDateTime getFechaAprobacion() {
+        return fechaAprobacion;
     }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { listarTurnos } from "../api/turnos";
+import { aprobarReporte, listarTurnos } from "../api/turnos";
+import { useSesion } from "../auth/SesionContext";
 import EstadoTurno, { ESTADOS_TURNO, formatearFecha, formatearHora } from "../components/EstadoTurno";
 
 function hoyIso() {
@@ -9,8 +10,15 @@ function hoyIso() {
 /**
  * F-10.3: dashboard de cierres pendientes. El administrador ve todos los
  * turnos y sus estados, y detecta qué workers no han cerrado su turno.
+ * F-04.3: con APROBAR_REPORTES aprueba el reporte de los turnos cerrados.
  */
+const APROBABLES = ["CERRADO", "CERRADO_CON_ALERTA"];
+
 export default function TurnosPage() {
+  const { tienePermiso } = useSesion();
+  const puedeAprobar = tienePermiso("APROBAR_REPORTES");
+  const [aprobando, setAprobando] = useState(null);
+  const [errorAprobacion, setErrorAprobacion] = useState(null);
   const [fecha, setFecha] = useState("");
   const [estado, setEstado] = useState("");
   const [respuesta, setRespuesta] = useState(null); // { turnos } | { error }
@@ -37,6 +45,23 @@ export default function TurnosPage() {
     return c;
   }, [turnos]);
   const visibles = estado ? turnos.filter((t) => t.estado === estado) : turnos;
+
+  async function aprobar(turno) {
+    setAprobando(turno.id);
+    setErrorAprobacion(null);
+    try {
+      const { status, data } = await aprobarReporte(turno.id);
+      if (status === 200) {
+        setRespuesta(({ turnos: actuales }) => ({ turnos: actuales.map((t) => (t.id === data.id ? data : t)) }));
+      } else {
+        setErrorAprobacion(data?.mensaje ?? `No se pudo aprobar el reporte (HTTP ${status})`);
+      }
+    } catch {
+      setErrorAprobacion("No se pudo conectar con el servidor.");
+    } finally {
+      setAprobando(null);
+    }
+  }
 
   return (
     <div className="pagina pagina--ancha">
@@ -90,6 +115,12 @@ export default function TurnosPage() {
         </div>
       )}
 
+      {errorAprobacion && (
+        <div className="tarjeta resultado resultado--error" role="alert">
+          <p>{errorAprobacion}</p>
+        </div>
+      )}
+
       {!respuesta && <div className="tarjeta">Cargando turnos…</div>}
 
       {respuesta?.turnos && (
@@ -104,6 +135,7 @@ export default function TurnosPage() {
                 <th>Cierre</th>
                 <th className="numero">% mortalidad</th>
                 <th>Estado</th>
+                {puedeAprobar && <th>Reporte</th>}
               </tr>
             </thead>
             <tbody>
@@ -122,12 +154,27 @@ export default function TurnosPage() {
                   </td>
                   <td>
                     <EstadoTurno estado={t.estado} />
+                    {t.aprobadoPor && <small>por {t.aprobadoPor}</small>}
                   </td>
+                  {puedeAprobar && (
+                    <td>
+                      {APROBABLES.includes(t.estado) && (
+                        <button
+                          type="button"
+                          className="boton-secundario"
+                          onClick={() => aprobar(t)}
+                          disabled={aprobando === t.id}
+                        >
+                          {aprobando === t.id ? "Aprobando…" : "Aprobar reporte"}
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="tabla-turnos__vacia">
+                  <td colSpan={puedeAprobar ? 8 : 7} className="tabla-turnos__vacia">
                     No hay turnos {estado ? `en estado "${ESTADOS_TURNO[estado].etiqueta}"` : ""}
                     {fecha ? ` el ${formatearFecha(fecha)}` : ""}.
                   </td>
