@@ -5,7 +5,8 @@ import com.avimanager.domain.policy.PoliticaStock;
 /**
  * Entidad de dominio: insumo de la bodega de la granja (F-03), con su stock
  * actual y la capacidad de almacenamiento. El cierre de turno descuenta el
- * alimento consumido (RN-03); el stock nunca queda negativo.
+ * alimento consumido (RN-03); el stock nunca queda negativo. Solo un Acta de
+ * Ajuste (F-05) cambia el stock a mano.
  */
 public class Insumo {
 
@@ -40,6 +41,21 @@ public class Insumo {
             throw new IllegalArgumentException("La cantidad a descontar no puede ser negativa");
         }
         this.stock = Math.max(0, stock - cantidad);
+    }
+
+    /**
+     * F-05: reemplaza el stock del sistema por el contado en la bodega. Solo lo
+     * usa el Acta de Ajuste (ComandoAjusteInventario), que deja la auditoria.
+     */
+    public void ajustarStock(double stockContado) {
+        if (stockContado < 0) {
+            throw new IllegalArgumentException("El stock contado no puede ser negativo");
+        }
+        if (stockContado > capacidad) {
+            throw new IllegalArgumentException("El stock contado (" + stockContado + " " + unidad
+                    + ") supera la capacidad de la bodega para " + nombre + " (" + capacidad + " " + unidad + ")");
+        }
+        this.stock = stockContado;
     }
 
     public double porcentajeDisponible() {

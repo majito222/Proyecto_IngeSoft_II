@@ -1232,3 +1232,51 @@ select:focus {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* --- Acta de ajuste (F-05) --- */
+
+.acta {
+  display: flex;
+  flex-direction: column;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.acta h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-suave);
+}
+
+.acta input,
+.acta textarea {
+  width: 100%;
+}
+
+.acta__diferencia {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.acta__diferencia--faltante {
+  color: var(--rojo);
+}
+
+.acta__acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.historial-actas h2 {
+  font-size: 20px;
+  color: var(--verde-oscuro);
+}
+
+@media (prefers-color-scheme: dark) {
+  .historial-actas h2 {
+    color: #8fd6a8;
+  }
+}

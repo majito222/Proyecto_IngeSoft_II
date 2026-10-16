@@ -92,8 +92,11 @@ public class SecurityConfig {
                                 "/api/ordenes-mantenimiento/*/certificacion")
                             .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())
                         // F-03: bodega de insumos
-                        .requestMatchers(HttpMethod.GET, "/api/inventario")
+                        .requestMatchers(HttpMethod.GET, "/api/inventario", "/api/inventario/ajustes")
                             .hasAuthority(Permiso.VER_INVENTARIO.name())
+                        // F-05: solo el Administrador registra Actas de Ajuste (RN-08)
+                        .requestMatchers(HttpMethod.POST, "/api/inventario/*/ajustes")
+                            .hasAuthority(Permiso.AJUSTAR_INVENTARIO.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))

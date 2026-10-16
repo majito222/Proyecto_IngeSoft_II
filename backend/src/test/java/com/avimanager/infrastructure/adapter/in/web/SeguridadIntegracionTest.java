@@ -674,6 +674,69 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].critico").value(true));
     }
 
+    // --- F-05: Acta de Ajuste de inventario (RN-08) ---
+
+    /** Matriz rol -> registrar Acta de Ajuste (permiso AJUSTAR_INVENTARIO: solo el Administrador). */
+    @ParameterizedTest(name = "{0} al registrar un acta de ajuste -> HTTP 403")
+    @CsvSource({"operario", "veterinario", "dueno", "zootecnista", "tecnico"})
+    void soloElAdministradorRegistraActasDeAjuste_F05(String username) throws Exception {
+        mvc.perform(post("/api/inventario/insumo-vacuna/ajustes").header("Authorization", "Bearer " + token(username))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stockContado\":1400,\"justificacion\":\"Conteo físico de la bodega\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    /** Matriz rol -> historial de actas (permiso VER_INVENTARIO: Administrador y Dueño). */
+    @ParameterizedTest(name = "{0} al ver el historial de actas -> HTTP {1}")
+    @CsvSource({
+            "admin,       200",
+            "dueno,       200",
+            "operario,    403",
+            "veterinario, 403",
+            "zootecnista, 403",
+            "tecnico,     403",
+    })
+    void soloAdministradorYDuenoVenElHistorialDeActas_F05(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/inventario/ajustes").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elAdministradorRegistraUnActaYElDuenoLaVeEnElHistorial_F05() throws Exception {
+        String admin = token("admin");
+        mvc.perform(post("/api/inventario/insumo-vacuna/ajustes").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stockContado\":1400,\"justificacion\":\"Conteo físico: 100 dosis vencidas\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.stockSistema").value(1500.0))
+                .andExpect(jsonPath("$.stockContado").value(1400.0))
+                .andExpect(jsonPath("$.diferencia").value(-100.0))
+                .andExpect(jsonPath("$.administradorUsername").value("admin"))
+                .andExpect(jsonPath("$.administradorNombre").value("Ana Administradora"));
+
+        mvc.perform(get("/api/inventario/ajustes").header("Authorization", "Bearer " + token("dueno")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].insumoNombre").value("Vacuna Newcastle"))
+                .andExpect(jsonPath("$[0].justificacion").value("Conteo físico: 100 dosis vencidas"));
+        mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + admin))
+                .andExpect(jsonPath("$[1].id").value("insumo-vacuna"))
+                .andExpect(jsonPath("$[1].stock").value(1400.0));
+    }
+
+    @Test
+    void unActaSinJustificacionResponde400YUnInsumoQueNoExisteResponde404_F05() throws Exception {
+        String admin = token("admin");
+        mvc.perform(post("/api/inventario/insumo-vacuna/ajustes").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"stockContado\":1400}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/inventario/no-existe/ajustes").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stockContado\":10,\"justificacion\":\"Conteo físico de la bodega\"}"))
+                .andExpect(status().isNotFound());
+    }
+
     private String token(String username) throws Exception {
         String respuesta = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"contrasena\":\"" + username + "123\"}"))

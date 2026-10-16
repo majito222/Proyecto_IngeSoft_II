@@ -8,10 +8,12 @@ import com.avimanager.domain.service.AtenderOrdenService;
 import com.avimanager.domain.service.ConsultarOrdenesService;
 import com.avimanager.domain.service.ReportarDanoService;
 import com.avimanager.domain.service.mantenimiento.FabricaOrdenMantenimiento;
+import com.avimanager.domain.port.in.AjustarInventarioUseCase;
 import com.avimanager.domain.port.in.AsignarWorkerUseCase;
 import com.avimanager.domain.port.in.AtenderAlertaSanitariaUseCase;
 import com.avimanager.domain.port.in.CalcularRacionUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
+import com.avimanager.domain.port.in.ConsultarActasAjusteUseCase;
 import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
 import com.avimanager.domain.port.in.ConsultarGalponesUseCase;
 import com.avimanager.domain.port.in.ConsultarInventarioUseCase;
@@ -24,6 +26,7 @@ import com.avimanager.domain.port.in.RegistrarGalponUseCase;
 import com.avimanager.domain.port.in.RegistrarLoteUseCase;
 import com.avimanager.domain.port.in.RegistrarPesajeUseCase;
 import com.avimanager.domain.port.in.RevisarPesajeUseCase;
+import com.avimanager.domain.port.out.ActaAjusteRepositoryPort;
 import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
 import com.avimanager.domain.port.out.CifradorContrasenaPort;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
@@ -35,10 +38,12 @@ import com.avimanager.domain.port.out.PublicadorEventosPort;
 import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import com.avimanager.domain.port.out.TurnoRepositoryPort;
 import com.avimanager.domain.port.out.UsuarioRepositoryPort;
+import com.avimanager.domain.service.AjustarInventarioService;
 import com.avimanager.domain.service.AsignarWorkerService;
 import com.avimanager.domain.service.AtenderAlertaSanitariaService;
 import com.avimanager.domain.service.CalcularRacionService;
 import com.avimanager.domain.service.CerrarTurnoService;
+import com.avimanager.domain.service.ConsultarActasAjusteService;
 import com.avimanager.domain.service.ConsultarAlertasService;
 import com.avimanager.domain.service.ConsultarGalponesService;
 import com.avimanager.domain.service.ConsultarInventarioService;
@@ -251,6 +256,25 @@ public class UseCaseConfig {
     @Bean
     public ConsultarInventarioUseCase consultarInventarioUseCase(InventarioRepositoryPort inventarioRepository) {
         return new ConsultarInventarioService(inventarioRepository);
+    }
+
+    /**
+     * F-05: Acta de Ajuste (patron Command). El servicio arma y ejecuta un
+     * ComandoAjusteInventario y guarda el acta como auditoria.
+     */
+    @Bean
+    public AjustarInventarioUseCase ajustarInventarioUseCase(InventarioRepositoryPort inventarioRepository,
+                                                              ActaAjusteRepositoryPort actaAjusteRepository,
+                                                              UsuarioRepositoryPort usuarioRepository,
+                                                              PublicadorEventosPort publicadorEventos,
+                                                              Clock clock) {
+        return new AjustarInventarioService(inventarioRepository, actaAjusteRepository, usuarioRepository,
+                publicadorEventos, clock);
+    }
+
+    @Bean
+    public ConsultarActasAjusteUseCase consultarActasAjusteUseCase(ActaAjusteRepositoryPort actaAjusteRepository) {
+        return new ConsultarActasAjusteService(actaAjusteRepository);
     }
 
     @Bean
