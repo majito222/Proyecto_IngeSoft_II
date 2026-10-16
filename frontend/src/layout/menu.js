@@ -2,6 +2,7 @@ import {
   IconAlertas,
   IconCierre,
   IconDano,
+  IconInventario,
   IconLotes,
   IconOrdenes,
   IconPesaje,
@@ -21,5 +22,6 @@ export const ITEMS_MENU = [
   { to: "/ordenes", label: "Órdenes de mantenimiento", icon: IconOrdenes, permiso: "ATENDER_ORDENES_MANTENIMIENTO" },
   { to: "/racion", label: "Ración diaria", icon: IconRacion, permiso: "VER_RACION" },
   { to: "/lotes", label: "Lotes y galpones", icon: IconLotes, permiso: "VER_LOTES" },
+  { to: "/inventario", label: "Inventario", icon: IconInventario, permiso: "VER_INVENTARIO" },
   { to: "/alertas", label: "Alertas sanitarias", icon: IconAlertas, permiso: "VER_ALERTAS_SANITARIAS" },
 ];

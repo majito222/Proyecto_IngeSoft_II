@@ -1109,3 +1109,126 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Inventario (F-03) --- */
+
+.inventario__actualizar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.inventario {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.insumo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 4px solid var(--verde);
+}
+
+.insumo--critico {
+  border-top-color: var(--rojo);
+}
+
+.insumo__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.insumo__nombre {
+  margin: 0;
+  color: var(--verde-oscuro);
+}
+
+@media (prefers-color-scheme: dark) {
+  .insumo__nombre {
+    color: #8fd6a8;
+  }
+}
+
+.insumo__tipo {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.insumo__porcentaje {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.insumo--critico .insumo__porcentaje {
+  color: var(--rojo);
+}
+
+.insumo__porcentaje small {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+.insumo__barra {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+}
+
+.insumo__relleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--verde);
+}
+
+.insumo--critico .insumo__relleno {
+  background: var(--rojo);
+}
+
+.insumo__umbral {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--texto-suave);
+}
+
+.insumo__datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+
+.insumo__datos dt {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.insumo__datos dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.insumo__aviso {
+  margin: 0;
+  font-size: 14px;
+  color: var(--rojo);
+}
+
+@media (max-width: 720px) {
+  .inventario {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

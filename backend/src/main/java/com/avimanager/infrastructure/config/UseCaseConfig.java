@@ -14,6 +14,7 @@ import com.avimanager.domain.port.in.CalcularRacionUseCase;
 import com.avimanager.domain.port.in.CerrarTurnoUseCase;
 import com.avimanager.domain.port.in.ConsultarAlertasUseCase;
 import com.avimanager.domain.port.in.ConsultarGalponesUseCase;
+import com.avimanager.domain.port.in.ConsultarInventarioUseCase;
 import com.avimanager.domain.port.in.ConsultarPesajesUseCase;
 import com.avimanager.domain.port.in.ConsultarTurnosUseCase;
 import com.avimanager.domain.port.in.FinalizarLoteUseCase;
@@ -27,6 +28,7 @@ import com.avimanager.domain.port.out.AlertaSanitariaRepositoryPort;
 import com.avimanager.domain.port.out.CifradorContrasenaPort;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.GeneradorTokenPort;
+import com.avimanager.domain.port.out.InventarioRepositoryPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 import com.avimanager.domain.port.out.PesajeRepositoryPort;
 import com.avimanager.domain.port.out.PublicadorEventosPort;
@@ -39,6 +41,7 @@ import com.avimanager.domain.service.CalcularRacionService;
 import com.avimanager.domain.service.CerrarTurnoService;
 import com.avimanager.domain.service.ConsultarAlertasService;
 import com.avimanager.domain.service.ConsultarGalponesService;
+import com.avimanager.domain.service.ConsultarInventarioService;
 import com.avimanager.domain.service.ConsultarPesajesService;
 import com.avimanager.domain.service.ConsultarTurnosService;
 import com.avimanager.domain.service.FinalizarLoteService;
@@ -53,6 +56,7 @@ import com.avimanager.domain.service.racion.RacionTablaEstandar;
 import com.avimanager.domain.service.racion.SelectorEstrategiaRacion;
 import com.avimanager.domain.service.cierre.ReglaCierreTurno;
 import com.avimanager.domain.service.cierre.ReglaConsolidacion;
+import com.avimanager.domain.service.cierre.ReglaDescontarInventario;
 import com.avimanager.domain.service.cierre.ReglaMortalidad;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,18 +78,21 @@ public class UseCaseConfig {
 
     /**
      * Cadena de reglas del cierre de turno (patron Chain of Responsibility). El
-     * orden importa: primero RN-05, luego RN-07/RN-01 y al final la consolidacion.
-     * Para agregar una regla (por ejemplo, el descuento de inventario de F-03),
-     * se enlaza un eslabon nuevo antes de ReglaConsolidacion.
+     * orden importa: primero RN-05, luego el descuento de alimento de la bodega
+     * (RN-03, F-03), despues RN-07/RN-01 y al final la consolidacion. El descuento
+     * va antes de la mortalidad para que tambien se aplique cuando el turno queda
+     * bloqueado por alerta sanitaria.
      */
     @Bean
     public ReglaCierreTurno reglasDeCierreTurno(LoteRepositoryPort loteRepository,
                                                 ReporteDiarioRepositoryPort reporteDiarioRepository,
                                                 AlertaSanitariaRepositoryPort alertaSanitariaRepository,
                                                 TurnoRepositoryPort turnoRepository,
+                                                InventarioRepositoryPort inventarioRepository,
                                                 PublicadorEventosPort publicadorEventos) {
         ReglaCierreTurno primera = new ReglaCamposObligatorios();
         primera
+                .enlazar(new ReglaDescontarInventario(inventarioRepository, publicadorEventos))
                 .enlazar(new ReglaMortalidad(loteRepository, reporteDiarioRepository, alertaSanitariaRepository,
                         turnoRepository, publicadorEventos))
                 .enlazar(new ReglaConsolidacion(loteRepository, reporteDiarioRepository, turnoRepository));
@@ -238,6 +245,12 @@ public class UseCaseConfig {
                                                             UsuarioRepositoryPort usuarioRepository,
                                                             Clock clock) {
         return new ConsultarOrdenesService(ordenMantenimientoRepository, galponRepository, usuarioRepository, clock);
+    }
+
+    /** F-03.2: la bodega con el stock de cada insumo. */
+    @Bean
+    public ConsultarInventarioUseCase consultarInventarioUseCase(InventarioRepositoryPort inventarioRepository) {
+        return new ConsultarInventarioService(inventarioRepository);
     }
 
     @Bean
