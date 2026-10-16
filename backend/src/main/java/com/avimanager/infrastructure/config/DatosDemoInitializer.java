@@ -166,6 +166,10 @@ public class DatosDemoInitializer implements CommandLineRunner {
         reporteDiarioRepository.guardar(reporte);
         turno.cerrar(reporte, fecha.atTime(LocalTime.of(14, 15)));
         turnoRepository.guardar(turno);
+        // Igual que ReglaConsolidacion: las bajas del cierre se descuentan del lote.
+        Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
+        lote.registrarBajas(bajas);
+        loteRepository.guardar(lote);
     }
 
     private void turnoBloqueado(String id, String worker, String loteId, String galponId, LocalDate fecha,

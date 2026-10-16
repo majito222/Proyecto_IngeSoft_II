@@ -90,6 +90,15 @@ class OrdenMantenimientoTest {
     }
 
     @Test
+    void losMinutosRestantesSeRedondeanHaciaArriba() {
+        OrdenMantenimiento o = orden();
+
+        assertThat(o.minutosRestantes(REPORTE.plusNanos(1_000))).as("recien creada: 12 h completas").isEqualTo(720);
+        assertThat(o.minutosRestantes(REPORTE.plusMinutes(30).plusSeconds(1))).isEqualTo(690);
+        assertThat(o.minutosRestantes(REPORTE.plusHours(12).plusSeconds(30))).as("vencida hace 30 s").isZero();
+    }
+
+    @Test
     void unaOrdenCertificadaNoVence() {
         OrdenMantenimiento o = orden();
         o.certificar("tecnico", "Reparada", REPORTE.plusHours(13));

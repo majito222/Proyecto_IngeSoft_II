@@ -68,9 +68,16 @@ public class OrdenMantenimiento {
         return estaPendiente() && ahora.isAfter(fechaLimite);
     }
 
-    /** Minutos que faltan para la fecha limite (negativo si ya vencio). */
+    /**
+     * Minutos que faltan para la fecha limite (negativo si ya vencio). Se redondea
+     * hacia arriba: una orden recien creada muestra 720 min ("quedan 12 h") aunque
+     * se consulte unos microsegundos despues de crearla.
+     */
     public long minutosRestantes(LocalDateTime ahora) {
-        return Duration.between(ahora, fechaLimite).toMinutes();
+        Duration restante = Duration.between(ahora, fechaLimite);
+        long minutos = restante.toMinutes();
+        boolean sobraFraccionDeMinuto = restante.toNanos() % Duration.ofMinutes(1).toNanos() > 0;
+        return sobraFraccionDeMinuto ? minutos + 1 : minutos;
     }
 
     public String getId() {

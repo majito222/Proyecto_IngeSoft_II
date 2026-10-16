@@ -222,7 +222,8 @@ class SeguridadIntegracionTest {
     void elOperarioVeLaRacionSugeridaAlConsultarSuTurno_F06() throws Exception {
         mvc.perform(get("/api/turnos/actual").header("Authorization", "Bearer " + token("operario3")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.racionSugeridaKg").value(10.2));
+                // Galpon 3: 600 aves - 3 bajas del cierre de ayer = 597 x 17 g
+                .andExpect(jsonPath("$.racionSugeridaKg").value(10.1));
     }
 
     /** Matriz rol -> listado de alertas sanitarias (permiso VER_ALERTAS_SANITARIAS). */
