@@ -91,6 +91,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/ordenes-mantenimiento/*/inicio",
                                 "/api/ordenes-mantenimiento/*/certificacion")
                             .hasAuthority(Permiso.ATENDER_ORDENES_MANTENIMIENTO.name())
+                        // F-03: bodega de insumos
+                        .requestMatchers(HttpMethod.GET, "/api/inventario")
+                            .hasAuthority(Permiso.VER_INVENTARIO.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))

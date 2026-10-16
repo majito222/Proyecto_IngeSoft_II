@@ -66,6 +66,16 @@ export function IconOrdenes(props) {
   );
 }
 
+export function IconInventario(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M3 8 12 4l9 4-9 4-9-4Z" />
+      <path d="M3 8v8l9 4 9-4V8" />
+      <path d="M12 12v8" />
+    </svg>
+  );
+}
+
 export function IconLotes(props) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>

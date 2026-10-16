@@ -618,6 +618,62 @@ class SeguridadIntegracionTest {
                 .andExpect(status().isNotFound());
     }
 
+    // --- F-03: inventario y stock critico ---
+
+    /** Matriz rol -> inventario (permiso VER_INVENTARIO: Administrador y Dueño). */
+    @ParameterizedTest(name = "{0} al ver el inventario -> HTTP {1}")
+    @CsvSource({
+            "admin,       200",
+            "dueno,       200",
+            "operario,    403",
+            "veterinario, 403",
+            "zootecnista, 403",
+            "tecnico,     403",
+    })
+    void soloAdministradorYDuenoVenElInventario_F03(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /**
+     * De punta a punta: un cierre de turno descuenta el alimento de la bodega. Usa
+     * un lote y un worker propios (Galpon 4 y operario4) para no depender del
+     * orden en que corren las demas pruebas, que comparten los datos de demo.
+     */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void cerrarUnTurnoDescuentaElAlimentoDeLaBodega_F03() throws Exception {
+        String admin = token("admin");
+        double stockAntes = json.readTree(mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + admin))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].id").value("insumo-alimento"))
+                        .andReturn().getResponse().getContentAsString())
+                .get(0).get("stock").asDouble();
+
+        String loteId = json.readTree(mvc.perform(post("/api/galpones/galpon-4/lotes")
+                                .header("Authorization", "Bearer " + admin).contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"poblacionInicial\":500,\"edadSemanas\":3}"))
+                        .andExpect(status().isCreated())
+                        .andReturn().getResponse().getContentAsString())
+                .get("id").asText();
+        mvc.perform(put("/api/usuarios/operario4/galpon").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"galponId\":\"galpon-4\"}"))
+                .andExpect(status().isOk());
+
+        String operario = token("operario4");
+        mvc.perform(post("/api/turnos/inicio").header("Authorization", "Bearer " + operario))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/lotes/" + loteId + "/turnos/cierre").header("Authorization", "Bearer " + operario)
+                        .contentType(MediaType.APPLICATION_JSON).content(TURNO_NORMAL))
+                .andExpect(status().isOk());
+
+        // El demo arranca en 5.030 kg (50.3%): tras 45 kg queda bajo el 50%, en Stock Critico.
+        mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].stock").value(stockAntes - 45.0))
+                .andExpect(jsonPath("$[0].critico").value(true));
+    }
+
     private String token(String username) throws Exception {
         String respuesta = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"contrasena\":\"" + username + "123\"}"))

@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import InicioPage from "./pages/InicioPage";
 import CierreTurnoPage from "./pages/CierreTurnoPage";
 import LotesPage from "./pages/LotesPage";
+import InventarioPage from "./pages/InventarioPage";
 import AlertasPage from "./pages/AlertasPage";
 import TurnosPage from "./pages/TurnosPage";
 import RacionPage from "./pages/RacionPage";
@@ -98,6 +99,14 @@ export default function App() {
               element={
                 <RutaProtegida permiso="VER_ALERTAS_SANITARIAS">
                   <AlertasPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="inventario"
+              element={
+                <RutaProtegida permiso="VER_INVENTARIO">
+                  <InventarioPage />
                 </RutaProtegida>
               }
             />
