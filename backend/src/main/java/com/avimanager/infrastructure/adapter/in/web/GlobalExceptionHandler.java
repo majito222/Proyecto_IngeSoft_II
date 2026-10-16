@@ -10,6 +10,7 @@ import com.avimanager.domain.exception.CredencialesInvalidasException;
 import com.avimanager.domain.exception.GalponConLoteActivoException;
 import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.GalponNoEncontradoException;
+import com.avimanager.domain.exception.InsumoNoEncontradoException;
 import com.avimanager.domain.exception.LoteNoEncontradoException;
 import com.avimanager.domain.exception.LoteYaFinalizadoException;
 import com.avimanager.domain.exception.PesajeNoEncontradoException;
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({LoteNoEncontradoException.class, PesajeNoEncontradoException.class,
-            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class, OrdenNoEncontradaException.class})
+            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class, InsumoNoEncontradoException.class, OrdenNoEncontradaException.class})
     public ResponseEntity<Map<String, String>> manejarNoEncontrado(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
