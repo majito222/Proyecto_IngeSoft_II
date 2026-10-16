@@ -223,8 +223,9 @@ public class UseCaseConfig {
 
     @Bean
     public RegistrarLoteUseCase registrarLoteUseCase(GalponRepositoryPort galponRepository,
-                                                      LoteRepositoryPort loteRepository) {
-        return new RegistrarLoteService(galponRepository, loteRepository);
+                                                      LoteRepositoryPort loteRepository,
+                                                      Clock clock) {
+        return new RegistrarLoteService(galponRepository, loteRepository, clock);
     }
 
     @Bean
@@ -316,10 +317,11 @@ public class UseCaseConfig {
             TurnoRepositoryPort turnoRepository,
             ReporteConsolidadoRepositoryPort reporteConsolidadoRepository,
             UsuarioRepositoryPort usuarioRepository,
+            InventarioRepositoryPort inventarioRepository,
             CalculadorKpisLotes calculadorKpisLotes,
             Clock clock) {
         return new ConsolidarReporteDiarioService(turnoRepository, reporteConsolidadoRepository, usuarioRepository,
-                calculadorKpisLotes, clock);
+                inventarioRepository, calculadorKpisLotes, clock);
     }
 
     /** F-04.3: aprobar el reporte de un turno (transicion aprobar del patron State de EstadoTurno). */

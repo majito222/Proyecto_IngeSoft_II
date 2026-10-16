@@ -14,7 +14,7 @@ public class MortalidadAcumuladaKpi implements CalculadoraKpi {
     @Override
     public ResultadoKpi calcular(DatosKpiLote datos) {
         Lote lote = datos.getLote();
-        int muertas = lote.getPoblacionInicial() - lote.getPoblacionActual();
+        int muertas = lote.getPoblacionInicial() - datos.getAvesVivas();
         double porcentaje = CalculadoraKpi.redondear(muertas * 100.0 / lote.getPoblacionInicial());
         return new ResultadoKpi(CLAVE, "Mortalidad acumulada", "%", porcentaje, false,
                 muertas + " de " + lote.getPoblacionInicial() + " aves");

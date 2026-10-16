@@ -1,5 +1,6 @@
 package com.avimanager.domain.service;
 
+import com.avimanager.domain.exception.InventarioNoConciliadoException;
 import com.avimanager.domain.exception.ReporteYaConsolidadoException;
 import com.avimanager.domain.exception.TurnoNoDisponibleException;
 import com.avimanager.domain.exception.TurnoNoEncontradoException;
@@ -8,6 +9,8 @@ import com.avimanager.domain.model.AlertaSanitaria;
 import com.avimanager.domain.model.EstadoLote;
 import com.avimanager.domain.model.EstadoTurno;
 import com.avimanager.domain.model.Galpon;
+import com.avimanager.domain.model.Insumo;
+import com.avimanager.domain.model.TipoInsumo;
 import com.avimanager.domain.model.KpisLote;
 import com.avimanager.domain.model.Lote;
 import com.avimanager.domain.model.ReporteConsolidado;
@@ -31,6 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,6 +51,7 @@ class ConsolidacionReporteDiarioTest {
     private FakeTurnoRepository turnos;
     private FakeReporteDiarioRepository reportes;
     private FakeReporteConsolidadoRepository consolidados;
+    private FakeInventarioRepository inventario;
     private AprobarReporteService aprobar;
     private ConsolidarReporteDiarioService consolidar;
     private Turno turnoGalpon1;
@@ -60,12 +65,16 @@ class ConsolidacionReporteDiarioTest {
         turnos = new FakeTurnoRepository();
         reportes = new FakeReporteDiarioRepository();
         consolidados = new FakeReporteConsolidadoRepository();
+        inventario = new FakeInventarioRepository();
+        inventario.guardar(new Insumo("alimento", "Alimento balanceado", TipoInsumo.ALIMENTO, "kg", 10000, 6000));
+        inventario.guardar(new Insumo("vacuna", "Vacuna Newcastle", TipoInsumo.SANIDAD, "dosis", 2000, 1500));
 
         CalculadorKpisLotes calculador = new CalculadorKpisLotes(
                 List.of(new ConversionAlimenticiaKpi(), new MortalidadAcumuladaKpi(), new ProduccionTotalKpi()),
                 lotes, galpones, reportes, new FakePesajeRepository());
         aprobar = new AprobarReporteService(turnos, RELOJ_FIJO);
-        consolidar = new ConsolidarReporteDiarioService(turnos, consolidados, usuarios, calculador, RELOJ_FIJO);
+        consolidar = new ConsolidarReporteDiarioService(turnos, consolidados, usuarios, inventario, calculador,
+                RELOJ_FIJO);
 
         usuarios.guardar(new Usuario("u1", "admin", "Ana Administradora", "x", Rol.ADMINISTRADOR, true));
         galpones.guardar(new Galpon("galpon-1", "Galpón 1", 600));
@@ -86,8 +95,16 @@ class ConsolidacionReporteDiarioTest {
         return turnos.guardar(turno);
     }
 
+    /** Conteo fisico que cuadra con la bodega (6.000 kg de alimento y 1.500 dosis de vacuna). */
+    private static final Map<String, Double> CONTEO_QUE_CUADRA = Map.of("alimento", 6000.0, "vacuna", 1500.0);
+
     private ReporteConsolidado consolidarAyer() {
-        return consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin"));
+        return consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin", CONTEO_QUE_CUADRA));
+    }
+
+    private void aprobarAmbos() {
+        aprobar.aprobarReporte(new AprobarReporteCommand("t1", "admin"));
+        aprobar.aprobarReporte(new AprobarReporteCommand("t2", "admin"));
     }
 
     private ResultadoKpi kpi(KpisLote lote, String clave) {
@@ -168,7 +185,58 @@ class ConsolidacionReporteDiarioTest {
 
     @Test
     void noSeConsolidaUnaFechaFutura() {
-        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER.plusDays(2), "admin")))
+        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER.plusDays(2), "admin", CONTEO_QUE_CUADRA)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // --- RN-06: cuadre obligatorio de stock fisico vs. sistema ---
+
+    @Test
+    void siElConteoFisicoNoCuadraNoSeConsolida_RN06() {
+        aprobarAmbos();
+
+        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin",
+                Map.of("alimento", 5950.0, "vacuna", 1500.0))))
+                .isInstanceOf(InventarioNoConciliadoException.class)
+                .hasMessageContaining("Alimento balanceado: sistema 6.000 kg, contado 5.950 kg")
+                .satisfies(e -> {
+                    var diferencias = ((InventarioNoConciliadoException) e).getDiferencias();
+                    assertThat(diferencias).singleElement().satisfies(d -> {
+                        assertThat(d.getStockSistema()).isEqualTo(6000.0);
+                        assertThat(d.getStockContado()).isEqualTo(5950.0);
+                        assertThat(d.getDiferencia()).as("faltan 50 kg").isEqualTo(-50.0);
+                    });
+                });
+        assertThat(consolidados.guardados).isEmpty();
+    }
+
+    @Test
+    void trasElActaDeAjusteElDiaSeConsolida_RN06() {
+        aprobarAmbos();
+        Map<String, Double> conteo = Map.of("alimento", 5950.0, "vacuna", 1500.0);
+        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin", conteo)))
+                .isInstanceOf(InventarioNoConciliadoException.class);
+
+        // El Acta de Ajuste (F-05) deja el stock del sistema igual al contado.
+        inventario.buscarPorId("alimento").orElseThrow().ajustarStock(5950.0);
+
+        ReporteConsolidado reporte = consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin", conteo));
+        assertThat(reporte.getConteoFisico()).as("queda como evidencia").isEqualTo(conteo);
+    }
+
+    @Test
+    void faltaElConteoDeUnInsumo_RN06() {
+        aprobarAmbos();
+
+        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin",
+                Map.of("alimento", 6000.0))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Vacuna Newcastle");
+    }
+
+    @Test
+    void losTurnosSinAprobarSeRevisanAntesQueElInventario() {
+        assertThatThrownBy(() -> consolidar.consolidar(new ConsolidarReporteCommand(AYER, "admin", Map.of())))
+                .isInstanceOf(TurnosSinAprobarException.class);
     }
 }

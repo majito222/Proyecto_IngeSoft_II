@@ -98,6 +98,22 @@ class CalcularRacionServiceTest {
     }
 
     @Test
+    void unLoteRecienLlegadoDeCeroSemanasTieneRacion() {
+        lotes.agregar(new Lote("lote-3", "galpon-1", 300, 300, 0, EstadoLote.ACTIVO));
+
+        assertThat(servicioCon(new RacionTablaEstandar()).racionDelLote("lote-3").getKilosTotales())
+                .as("300 x 10 g").isEqualTo(3.0);
+    }
+
+    @Test
+    void losLotesFinalizadosNoAparecenEnLaRacionDelDia() {
+        lotes.buscarPorId("lote-2").orElseThrow().finalizar();
+
+        assertThat(servicioCon(new RacionTablaEstandar()).racionesDelDia()).extracting(RacionDiaria::getLoteId)
+                .containsExactly("lote-1");
+    }
+
+    @Test
     void fallaSiElLoteNoExiste() {
         assertThatThrownBy(() -> servicioCon(new RacionTablaEstandar()).racionDelLote("no-existe"))
                 .isInstanceOf(LoteNoEncontradoException.class);

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { listarInventario } from "../api/inventario";
 import { consolidarReporte, listarConsolidados, listarKpis } from "../api/kpis";
 import { useSesion } from "../auth/SesionContext";
 import { formatearFecha, formatearHora } from "../components/EstadoTurno";
@@ -92,17 +94,19 @@ function TablaKpis({ lotes }) {
 }
 
 /**
- * F-04.2: dashboard de KPIs diarios de todos los galpones (Dueño y Administrador).
- * F-04.1: el Administrador consolida el reporte del día; se rechaza si queda algún
- * turno de esa fecha sin aprobar (F-04.3, se aprueban en el Panel de turnos).
+ * F-04.2: dashboard de KPIs diarios de todos los galpones (Dueño y Administrador),
+ * calculados a la fecha consultada; un día consolidado muestra la foto guardada.
+ * F-04.1: el Administrador consolida el reporte del día. Se rechaza si queda algún
+ * turno sin aprobar (F-04.3) o si el conteo físico de la bodega no cuadra con el
+ * sistema (RN-06): en ese caso hay que registrar un Acta de Ajuste (F-05).
  */
 export default function IndicadoresPage() {
   const { tienePermiso } = useSesion();
   const puedeConsolidar = tienePermiso("APROBAR_REPORTES");
   const [fecha, setFecha] = useState(hoyIso);
   const [respuesta, setRespuesta] = useState(null); // { lotes, consolidados } | { error }
-  const [consolidando, setConsolidando] = useState(false);
-  const [aviso, setAviso] = useState(null); // { tipo: "exito" | "error", texto }
+  const [panelConteo, setPanelConteo] = useState(false);
+  const [aviso, setAviso] = useState(null); // { tipo: "exito" | "error", texto, diferencias? }
 
   const cargar = useCallback(async () => {
     setRespuesta(null);
@@ -120,29 +124,19 @@ export default function IndicadoresPage() {
 
   useEffect(() => {
     cargar();
+    setPanelConteo(false);
+    setAviso(null);
   }, [cargar]);
 
-  async function consolidar() {
-    setConsolidando(true);
-    setAviso(null);
-    try {
-      const { status, data } = await consolidarReporte(fecha);
-      if (status === 201) {
-        setAviso({ tipo: "exito", texto: `Reporte del ${formatearFecha(fecha)} consolidado.` });
-        cargar();
-      } else {
-        setAviso({ tipo: "error", texto: data?.mensaje ?? `No se pudo consolidar (HTTP ${status})` });
-      }
-    } catch {
-      setAviso({ tipo: "error", texto: "No se pudo conectar con el servidor." });
-    } finally {
-      setConsolidando(false);
-    }
+  function consolidado() {
+    setPanelConteo(false);
+    setAviso({ tipo: "exito", texto: `Reporte del ${formatearFecha(fecha)} consolidado.` });
+    cargar();
   }
 
   const lotes = respuesta?.lotes ?? [];
   const consolidados = respuesta?.consolidados ?? [];
-  const yaConsolidado = consolidados.some((r) => r.fecha === fecha);
+  const reporteDelDia = consolidados.find((r) => r.fecha === fecha);
 
   return (
     <div className="pagina pagina--ancha">
@@ -161,22 +155,27 @@ export default function IndicadoresPage() {
           <button
             type="button"
             className="boton-secundario boton-secundario--principal barra-filtros__actualizar"
-            onClick={consolidar}
-            disabled={consolidando || yaConsolidado || !respuesta?.lotes}
+            onClick={() => {
+              setAviso(null);
+              setPanelConteo(true);
+            }}
+            disabled={Boolean(reporteDelDia) || panelConteo || !respuesta?.lotes}
           >
-            {yaConsolidado ? "Día ya consolidado" : consolidando ? "Consolidando…" : "Consolidar reporte del día"}
+            {reporteDelDia ? "Día ya consolidado" : "Consolidar reporte del día"}
           </button>
         )}
       </div>
 
-      {aviso && (
-        <div className={`tarjeta resultado resultado--${aviso.tipo}`} role="status">
-          <p>{aviso.texto}</p>
-          {aviso.tipo === "error" && puedeConsolidar && (
-            <p className="ayuda">Aprueba los reportes pendientes en el Panel de turnos y vuelve a intentarlo.</p>
-          )}
-        </div>
+      {panelConteo && (
+        <PanelConteo
+          fecha={fecha}
+          onCancelar={() => setPanelConteo(false)}
+          onConsolidado={consolidado}
+          onRechazado={(nuevoAviso) => setAviso(nuevoAviso)}
+        />
       )}
+
+      {aviso && <AvisoConsolidacion aviso={aviso} />}
 
       {!respuesta && <div className="tarjeta">Calculando indicadores…</div>}
 
@@ -187,14 +186,20 @@ export default function IndicadoresPage() {
         </div>
       )}
 
+      {reporteDelDia && respuesta?.lotes && (
+        <p className="tarjeta resultado resultado--exito foto-consolidada">
+          Foto del día consolidada por {reporteDelDia.consolidadoPorNombre} el{" "}
+          {formatearFecha(reporteDelDia.fechaHora)} a las {formatearHora(reporteDelDia.fechaHora)}: estos valores ya
+          no cambian.
+        </p>
+      )}
+
       {respuesta?.lotes && <TablaKpis lotes={lotes} />}
 
       {respuesta?.lotes && (
         <section className="consolidados">
           <h2>Reportes consolidados</h2>
-          {consolidados.length === 0 && (
-            <p className="ayuda">Todavía no se ha consolidado ningún día.</p>
-          )}
+          {consolidados.length === 0 && <p className="ayuda">Todavía no se ha consolidado ningún día.</p>}
           {consolidados.map((reporte) => (
             <details key={reporte.id} className="tarjeta consolidado">
               <summary>
@@ -209,6 +214,133 @@ export default function IndicadoresPage() {
             </details>
           ))}
         </section>
+      )}
+    </div>
+  );
+}
+
+/** RN-06: el Administrador ingresa el conteo físico de cada insumo antes de consolidar. */
+function PanelConteo({ fecha, onCancelar, onConsolidado, onRechazado }) {
+  const [insumos, setInsumos] = useState(null); // lista | { error }
+  const [conteo, setConteo] = useState({});
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    listarInventario()
+      .then(({ status, data }) =>
+        setInsumos(status === 200 ? data : { error: data?.mensaje ?? `No se pudo cargar la bodega (HTTP ${status})` }),
+      )
+      .catch(() => setInsumos({ error: "No se pudo conectar con el servidor." }));
+  }, []);
+
+  async function manejarEnvio(evento) {
+    evento.preventDefault();
+    setEnviando(true);
+    try {
+      const conteoFisico = Object.fromEntries(Object.entries(conteo).map(([id, valor]) => [id, Number(valor)]));
+      const { status, data } = await consolidarReporte(fecha, conteoFisico);
+      if (status === 201) onConsolidado();
+      else
+        onRechazado({
+          tipo: "error",
+          texto: data?.mensaje ?? `No se pudo consolidar (HTTP ${status})`,
+          diferencias: data?.diferencias,
+        });
+    } catch {
+      onRechazado({ tipo: "error", texto: "No se pudo conectar con el servidor." });
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <form className="tarjeta conteo-fisico" onSubmit={manejarEnvio}>
+      <h3>Conteo físico de la bodega</h3>
+      <p className="ayuda">
+        Antes de cerrar el día, cuenta los insumos en la bodega (RN-06). Si algún conteo no cuadra con el sistema, hay
+        que justificar la diferencia con un Acta de Ajuste.
+      </p>
+      {!insumos && <p>Cargando insumos…</p>}
+      {insumos?.error && <p className="login__error">{insumos.error}</p>}
+      {Array.isArray(insumos) && (
+        <div className="conteo-fisico__campos">
+          {insumos.map((insumo) => (
+            <div className="campo" key={insumo.id}>
+              <label htmlFor={`conteo-${insumo.id}`}>
+                {insumo.nombre} ({insumo.unidad}) <span className="requerido">*</span>
+              </label>
+              <input
+                id={`conteo-${insumo.id}`}
+                type="number"
+                min="0"
+                step="any"
+                required
+                inputMode="decimal"
+                value={conteo[insumo.id] ?? ""}
+                onChange={(e) => setConteo((c) => ({ ...c, [insumo.id]: e.target.value }))}
+              />
+              <span className="ayuda-campo">
+                En el sistema: {insumo.stock.toLocaleString("es-CO")} {insumo.unidad}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="conteo-fisico__acciones">
+        <button type="button" className="boton-secundario" onClick={onCancelar} disabled={enviando}>
+          Cancelar
+        </button>
+        <button type="submit" className="boton-primario" disabled={enviando || !Array.isArray(insumos)}>
+          {enviando ? "Consolidando…" : "Consolidar reporte del día"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AvisoConsolidacion({ aviso }) {
+  const { diferencias } = aviso;
+  return (
+    <div className={`tarjeta resultado resultado--${aviso.tipo}`} role="status">
+      <p>{aviso.texto}</p>
+      {diferencias?.length > 0 && (
+        <>
+          <div className="tabla-turnos">
+            <table>
+              <thead>
+                <tr>
+                  <th>Insumo</th>
+                  <th className="numero">En el sistema</th>
+                  <th className="numero">Contado</th>
+                  <th className="numero">Diferencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {diferencias.map((d) => (
+                  <tr key={d.insumoId}>
+                    <td>{d.insumoNombre}</td>
+                    <td className="numero">
+                      {d.stockSistema.toLocaleString("es-CO")} {d.unidad}
+                    </td>
+                    <td className="numero">
+                      {d.stockContado.toLocaleString("es-CO")} {d.unidad}
+                    </td>
+                    <td className="numero">
+                      {d.diferencia > 0 ? "+" : ""}
+                      {d.diferencia.toLocaleString("es-CO")} {d.unidad}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Link to="/inventario" className="boton-secundario conteo-fisico__acta">
+            Registrar Acta de Ajuste en Inventario
+          </Link>
+        </>
+      )}
+      {aviso.tipo === "error" && !diferencias && (
+        <p className="ayuda">Si quedan turnos sin aprobar, apruébalos en el Panel de turnos y vuelve a intentarlo.</p>
       )}
     </div>
   );

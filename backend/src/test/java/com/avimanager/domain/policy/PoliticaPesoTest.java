@@ -19,8 +19,13 @@ class PoliticaPesoTest {
     }
 
     @Test
+    void laSemanaCeroEsElPollitoDeUnDiaAlLlegar() {
+        assertThat(PoliticaPeso.pesoEstandarGramos(0)).isEqualTo(40.0);
+    }
+
+    @Test
     void fueraDeLaTablaEsUnError() {
-        assertThatThrownBy(() -> PoliticaPeso.pesoEstandarGramos(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> PoliticaPeso.pesoEstandarGramos(-1)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> PoliticaPeso.pesoEstandarGramos(81)).isInstanceOf(IllegalArgumentException.class);
     }
 

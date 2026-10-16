@@ -8,6 +8,9 @@ import com.avimanager.domain.port.in.RegistrarLoteUseCase;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 
+import java.time.Clock;
+import java.time.LocalDate;
+
 
 /**
  * Implementa F-11.1 (registrar lote): busca el galpon y su lote activo, y deja
@@ -18,10 +21,12 @@ public class RegistrarLoteService implements RegistrarLoteUseCase {
 
     private final GalponRepositoryPort galponRepository;
     private final LoteRepositoryPort loteRepository;
+    private final Clock clock;
 
-    public RegistrarLoteService(GalponRepositoryPort galponRepository, LoteRepositoryPort loteRepository) {
+    public RegistrarLoteService(GalponRepositoryPort galponRepository, LoteRepositoryPort loteRepository, Clock clock) {
         this.galponRepository = galponRepository;
         this.loteRepository = loteRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -35,6 +40,7 @@ public class RegistrarLoteService implements RegistrarLoteUseCase {
                 .alojadoEn(galpon, loteActivo)
                 .poblacionInicial(comando.getPoblacionInicial())
                 .edadSemanas(comando.getEdadSemanas())
+                .ingresoEl(LocalDate.now(clock))
                 .build();
         return loteRepository.guardar(lote);
     }

@@ -48,6 +48,8 @@ import java.time.LocalTime;
  * dia en cada galpon, con el consumo de su racion, y cada lote tiene dos
  * pesajes semanales (cada uno con la edad que tenia el lote ese dia). Asi la
  * conversion alimenticia muestra valores reales (alrededor de 1.6 a 2.2).
+ * La produccion de huevos de la demo es 0: los lotes tienen de 2 a 5 semanas y
+ * las ponedoras empiezan a poner hacia la semana 18-20.
  *
  * Pesajes (F-07): el Galpon 1 no se ha pesado esta semana (el operario puede
  * hacerlo en la demo) y el Galpon 3 se peso hoy 6% por debajo del estandar,
@@ -109,9 +111,12 @@ public class DatosDemoInitializer implements CommandLineRunner {
         galponRepository.guardar(new Galpon("galpon-2", "Galpón 2", 900));
         galponRepository.guardar(new Galpon("galpon-3", "Galpón 3", 700));
         galponRepository.guardar(new Galpon("galpon-4", "Galpón 4", 1000));
-        loteRepository.guardar(new Lote("lote-1", "galpon-1", 500, 500, 3, EstadoLote.ACTIVO));
-        loteRepository.guardar(new Lote("lote-2", "galpon-2", 800, 800, 5, EstadoLote.EN_OBSERVACION));
-        loteRepository.guardar(new Lote("lote-3", "galpon-3", 600, 600, 2, EstadoLote.ACTIVO));
+        // Cada lote ingreso al galpon hace tantas semanas como su edad (llego con 0 semanas).
+        LocalDate hoyIngreso = LocalDate.now(clock);
+        loteRepository.guardar(new Lote("lote-1", "galpon-1", 500, 500, 3, EstadoLote.ACTIVO, hoyIngreso.minusWeeks(3)));
+        loteRepository.guardar(new Lote("lote-2", "galpon-2", 800, 800, 5, EstadoLote.EN_OBSERVACION,
+                hoyIngreso.minusWeeks(5)));
+        loteRepository.guardar(new Lote("lote-3", "galpon-3", 600, 600, 2, EstadoLote.ACTIVO, hoyIngreso.minusWeeks(2)));
 
         crearUsuario("operario", "Pedro Operario", Rol.OPERARIO, "galpon-1");
         crearUsuario("operario2", "Olga Operaria", Rol.OPERARIO, "galpon-2");
@@ -172,7 +177,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
                         LocalDateTime fechaHora) {
         Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
         Lote ese = new Lote(lote.getId(), lote.getGalponId(), lote.getPoblacionInicial(), lote.getPoblacionActual(),
-                lote.getEdadSemanas() - semanasAtras, lote.getEstado());
+                lote.getEdadSemanas() - semanasAtras, lote.getEstado(), lote.getFechaIngreso());
         pesajeRepository.guardar(new Pesaje(id, ese, pesoPromedio, muestra, worker, fechaHora));
     }
 
@@ -183,7 +188,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
             String id = "hist-" + loteId + "-" + fecha;
             Turno turno = new Turno(id, worker, loteId, galponId, fecha, fecha.atTime(6, 0));
             double consumo = Math.round((consumoKg + (dias % 3) * 0.3) * 10.0) / 10.0;
-            ReporteDiario reporte = new ReporteDiario("reporte-" + id, loteId, fecha, consumo, 0, null, 12,
+            ReporteDiario reporte = new ReporteDiario("reporte-" + id, loteId, fecha, consumo, 0, null, 0,
                     "Sin novedades");
             reporte.registrarPorcentajeMortalidad(0.0);
             reporte.consolidar();
@@ -229,7 +234,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
     private ReporteDiario reporte(String turnoId, String loteId, LocalDate fecha, int poblacion, int bajas,
                                   double consumoKg) {
         ReporteDiario reporte = new ReporteDiario("reporte-" + turnoId, loteId, fecha, consumoKg, bajas,
-                "jadeo", 12, null);
+                "jadeo", 0, null);
         reporte.registrarPorcentajeMortalidad(PoliticaMortalidad.calcularPorcentaje(bajas, poblacion));
         return reporte;
     }

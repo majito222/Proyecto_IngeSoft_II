@@ -18,7 +18,7 @@ class GalponLoteBuilderTest {
     private final Galpon galpon = Galpon.builder().id("galpon-1").nombre("Galpón 1").capacidadMaxima(600).build();
 
     private Lote lote(String id, int poblacion, Lote loteActivoDelGalpon) {
-        return Lote.builder().id(id).alojadoEn(galpon, loteActivoDelGalpon).poblacionInicial(poblacion).edadSemanas(1)
+        return Lote.builder().id(id).alojadoEn(galpon, loteActivoDelGalpon).poblacionInicial(poblacion).edadSemanas(1).ingresoEl(java.time.LocalDate.of(2026, 3, 1))
                 .build();
     }
 
@@ -98,7 +98,7 @@ class GalponLoteBuilderTest {
     @Test
     void unLoteSinPoblacionOConEdadNegativaNoSeCrea() {
         assertThatThrownBy(() -> lote("lote-1", 0, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> Lote.builder().id("l").alojadoEn(galpon, null).poblacionInicial(10).edadSemanas(-1)
+        assertThatThrownBy(() -> Lote.builder().id("l").alojadoEn(galpon, null).poblacionInicial(10).edadSemanas(-1).ingresoEl(java.time.LocalDate.of(2026, 3, 1))
                 .build()).isInstanceOf(IllegalArgumentException.class);
     }
 
