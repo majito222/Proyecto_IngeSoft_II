@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { listarPesajes, revisarPesaje } from "../api/pesajes";
+import { useSesion } from "../auth/SesionContext";
 import EstadoPesaje, { formatearDesviacion, formatearGramos } from "../components/EstadoPesaje";
 import { formatearFecha } from "../components/EstadoTurno";
 
 /**
  * F-07.2: el zootecnista ve los pesajes de todos los galpones, con los que se
  * salen de ±5% resaltados en amarillo, y decide si se ajusta la ración (RN-02).
+ * El administrador los ve en solo lectura: la decisión es del zootecnista.
  */
 export default function RevisionPesajesPage() {
+  const { tienePermiso } = useSesion();
+  const puedeRevisar = tienePermiso("REVISAR_PESAJES");
   const [respuesta, setRespuesta] = useState(null); // { pesajes } | { error }
   const [enCurso, setEnCurso] = useState(null); // id del pesaje que se está revisando
   const [error, setError] = useState(null);
@@ -53,7 +57,7 @@ export default function RevisionPesajesPage() {
         <h1>Revisión de pesajes</h1>
         <p>
           Pesajes semanales de los galpones. Los que se desvían más de ±5% del peso estándar quedan pendientes hasta
-          que decidas si se ajusta la ración (RN-02).
+          que el zootecnista decida si se ajusta la ración (RN-02).
         </p>
       </header>
 
@@ -134,7 +138,9 @@ export default function RevisionPesajesPage() {
                       <EstadoPesaje estado={p.estado} />
                     </td>
                     <td>
-                      {p.estado === "PENDIENTE_REVISION" ? (
+                      {p.estado === "PENDIENTE_REVISION" && !puedeRevisar ? (
+                        <small>Pendiente del zootecnista</small>
+                      ) : p.estado === "PENDIENTE_REVISION" ? (
                         <div className="pesaje__acciones">
                           <button
                             type="button"

@@ -58,7 +58,7 @@ export default function App() {
             <Route
               path="pesajes"
               element={
-                <RutaProtegida permiso="REVISAR_PESAJES">
+                <RutaProtegida permiso="VER_PESAJES">
                   <RevisionPesajesPage />
                 </RutaProtegida>
               }
@@ -74,7 +74,7 @@ export default function App() {
             <Route
               path="ordenes"
               element={
-                <RutaProtegida permiso="ATENDER_ORDENES_MANTENIMIENTO">
+                <RutaProtegida permiso="VER_ORDENES_MANTENIMIENTO">
                   <OrdenesMantenimientoPage />
                 </RutaProtegida>
               }

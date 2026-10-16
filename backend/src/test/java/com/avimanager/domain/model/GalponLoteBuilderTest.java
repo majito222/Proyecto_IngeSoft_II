@@ -46,7 +46,7 @@ class GalponLoteBuilderTest {
         Lote creado = lote("lote-1", 600, null);
 
         assertThat(creado.getGalponId()).isEqualTo("galpon-1");
-        assertThat(creado.getPoblacionInicialDia()).isEqualTo(600);
+        assertThat(creado.getPoblacionInicial()).isEqualTo(600);
         assertThat(creado.getPoblacionActual()).isEqualTo(600);
         assertThat(creado.getEstado()).isEqualTo(EstadoLote.ACTIVO);
     }

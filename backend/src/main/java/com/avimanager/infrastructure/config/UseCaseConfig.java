@@ -57,6 +57,7 @@ import com.avimanager.domain.service.RegistrarLoteService;
 import com.avimanager.domain.service.RegistrarPesajeService;
 import com.avimanager.domain.service.RevisarPesajeService;
 import com.avimanager.domain.service.cierre.ReglaCamposObligatorios;
+import com.avimanager.domain.service.cierre.ReglaValoresValidos;
 import com.avimanager.domain.service.racion.RacionTablaEstandar;
 import com.avimanager.domain.service.racion.SelectorEstrategiaRacion;
 import com.avimanager.domain.service.cierre.ReglaCierreTurno;
@@ -109,6 +110,7 @@ public class UseCaseConfig {
                                                 PublicadorEventosPort publicadorEventos) {
         ReglaCierreTurno primera = new ReglaCamposObligatorios();
         primera
+                .enlazar(new ReglaValoresValidos())
                 .enlazar(new ReglaDescontarInventario(inventarioRepository, publicadorEventos))
                 .enlazar(new ReglaMortalidad(loteRepository, reporteDiarioRepository, alertaSanitariaRepository,
                         turnoRepository, publicadorEventos))

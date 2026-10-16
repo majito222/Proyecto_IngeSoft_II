@@ -40,7 +40,7 @@ public class CalculadorKpisLotes {
         return loteRepository.listarTodos().stream()
                 .filter(Lote::estaActivo)
                 .map(lote -> calcular(lote, fecha))
-                .sorted(Comparator.comparing(KpisLote::getGalponNombre))
+                .sorted(Comparator.comparing(KpisLote::getGalponNombre, Galpon.ORDEN_POR_NOMBRE))
                 .toList();
     }
 

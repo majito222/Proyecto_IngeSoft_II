@@ -4,7 +4,10 @@ import com.avimanager.domain.exception.LoteYaFinalizadoException;
 
 /**
  * Entidad de dominio: Lote de aves dentro de un galpon.
- * poblacionInicialDia es la base para calcular el % de mortalidad diaria (RN-07).
+ * poblacionInicial es la poblacion con la que ingreso el lote (base de la
+ * mortalidad acumulada, F-04). poblacionActual son las aves vivas: como hay un
+ * solo turno por lote al dia y las bajas se descuentan al consolidar el cierre,
+ * al momento del cierre es tambien la poblacion inicial del dia (RN-07).
  * Los lotes nuevos se crean con LoteBuilder (F-11), que valida la capacidad del
  * galpon y que este no tenga ya un lote activo.
  */
@@ -12,15 +15,15 @@ public class Lote {
 
     private final String id;
     private final String galponId;
-    private final int poblacionInicialDia;
+    private final int poblacionInicial;
     private int poblacionActual;
     private final int edadSemanas;
     private EstadoLote estado;
 
-    public Lote(String id, String galponId, int poblacionInicialDia, int poblacionActual, int edadSemanas, EstadoLote estado) {
+    public Lote(String id, String galponId, int poblacionInicial, int poblacionActual, int edadSemanas, EstadoLote estado) {
         this.id = id;
         this.galponId = galponId;
-        this.poblacionInicialDia = poblacionInicialDia;
+        this.poblacionInicial = poblacionInicial;
         this.poblacionActual = poblacionActual;
         this.edadSemanas = edadSemanas;
         this.estado = estado;
@@ -64,8 +67,8 @@ public class Lote {
         return galponId;
     }
 
-    public int getPoblacionInicialDia() {
-        return poblacionInicialDia;
+    public int getPoblacionInicial() {
+        return poblacionInicial;
     }
 
     public int getPoblacionActual() {

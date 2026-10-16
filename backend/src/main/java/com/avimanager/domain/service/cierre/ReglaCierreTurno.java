@@ -10,8 +10,9 @@ import java.util.Optional;
  * campos incompletos o alerta sanitaria) o pasarlo al siguiente eslabon.
  *
  * Cadena actual (se arma en UseCaseConfig):
- *   ReglaCamposObligatorios (RN-05) -> ReglaDescontarInventario (RN-03)
- *     -> ReglaMortalidad (RN-07/RN-01) -> ReglaConsolidacion
+ *   ReglaCamposObligatorios (RN-05) -> ReglaValoresValidos
+ *     -> ReglaDescontarInventario (RN-03) -> ReglaMortalidad (RN-07/RN-01)
+ *     -> ReglaConsolidacion
  * Una regla nueva se agrega como otro eslabon antes de ReglaConsolidacion, sin
  * modificar CerrarTurnoService.
  *

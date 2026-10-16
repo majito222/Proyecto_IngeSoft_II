@@ -8,7 +8,6 @@ import com.avimanager.domain.port.in.RegistrarLoteUseCase;
 import com.avimanager.domain.port.out.GalponRepositoryPort;
 import com.avimanager.domain.port.out.LoteRepositoryPort;
 
-import java.util.UUID;
 
 /**
  * Implementa F-11.1 (registrar lote): busca el galpon y su lote activo, y deja
@@ -32,7 +31,7 @@ public class RegistrarLoteService implements RegistrarLoteUseCase {
         Lote loteActivo = loteRepository.buscarPorGalpon(galpon.getId()).orElse(null);
 
         Lote lote = Lote.builder()
-                .id("lote-" + UUID.randomUUID())
+                .id(CodigoConsecutivo.siguiente("lote", loteRepository.listarTodos().stream().map(Lote::getId).toList()))
                 .alojadoEn(galpon, loteActivo)
                 .poblacionInicial(comando.getPoblacionInicial())
                 .edadSemanas(comando.getEdadSemanas())

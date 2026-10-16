@@ -9,9 +9,9 @@ const ESTADO_GALPON = {
 };
 
 /**
- * F-08.2: el worker reporta un daño de infraestructura en su galpón (el
- * administrador elige el galpón). F-08.1: el galpón pasa a "En riesgo
- * sanitario" y se crea una orden de mantenimiento con plazo de 12 h (RN-04).
+ * F-08.2: el worker reporta un daño de infraestructura en su galpón asignado.
+ * F-08.1: el galpón pasa a "En riesgo sanitario" y se crea una orden de
+ * mantenimiento con plazo de 12 h (RN-04).
  */
 export default function ReportarDanoPage() {
   const [respuesta, setRespuesta] = useState(null); // { galpones } | { error }
@@ -64,7 +64,7 @@ export default function ReportarDanoPage() {
         </div>
       )}
 
-      {galpones.length > 0 && <FormularioDano galpones={galpones} onReportada={manejarReportada} />}
+      {galpones.length > 0 && <FormularioDano galpon={galpones[0]} onReportada={manejarReportada} />}
 
       {reportada && (
         <div className="tarjeta resultado resultado--advertencia" role="status">
@@ -111,8 +111,7 @@ export default function ReportarDanoPage() {
   );
 }
 
-function FormularioDano({ galpones, onReportada }) {
-  const [galponId, setGalponId] = useState(galpones[0].galponId);
+function FormularioDano({ galpon, onReportada }) {
   const [tipoDano, setTipoDano] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -123,7 +122,7 @@ function FormularioDano({ galpones, onReportada }) {
     setEnviando(true);
     setError(null);
     try {
-      const { status, data } = await reportarDano({ galponId, tipoDano, descripcion });
+      const { status, data } = await reportarDano({ tipoDano, descripcion });
       if (status === 201) {
         setTipoDano("");
         setDescripcion("");
@@ -143,17 +142,7 @@ function FormularioDano({ galpones, onReportada }) {
       <div className="pesaje__campos">
         <div className="campo">
           <label htmlFor="galpon-dano">Galpón</label>
-          {galpones.length === 1 ? (
-            <input id="galpon-dano" type="text" value={galpones[0].galponNombre} readOnly />
-          ) : (
-            <select id="galpon-dano" value={galponId} onChange={(e) => setGalponId(e.target.value)}>
-              {galpones.map((g) => (
-                <option key={g.galponId} value={g.galponId}>
-                  {g.galponNombre}
-                </option>
-              ))}
-            </select>
-          )}
+          <input id="galpon-dano" type="text" value={galpon.galponNombre} readOnly />
         </div>
         <div className="campo">
           <label htmlFor="tipo-dano">

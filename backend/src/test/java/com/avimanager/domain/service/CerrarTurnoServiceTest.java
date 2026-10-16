@@ -65,6 +65,23 @@ class CerrarTurnoServiceTest {
                 new Turno("turno-1", "operario", "lote-1", "galpon-1", HOY, HOY.atTime(6, 0)));
     }
 
+    /**
+     * RN-07: la base es la poblacion inicial DEL DIA, no la del lote. El lote entro
+     * con 500 aves y hoy amanece con 460: 7 bajas son 7/460 = 1.52% y disparan
+     * RN-01. Con la poblacion del lote (7/500 = 1.4%) la alerta no saldria.
+     */
+    @Test
+    void elPorcentajeDeMortalidadUsaLaPoblacionDelDia_RN07() {
+        loteRepository.agregar(new Lote("lote-1", "galpon-1", 500, 460, 3, EstadoLote.ACTIVO));
+
+        CerrarTurnoResult resultado = service.cerrarTurno(
+                new CerrarTurnoCommand("lote-1", 40.0, 7, "jadeo", 10, null, "operario"));
+
+        assertThat(resultado.getEstado()).isEqualTo(CerrarTurnoResult.Estado.ALERTA_SANITARIA);
+        assertThat(resultado.getAlertaSanitaria().getPorcentajeMortalidad())
+                .isCloseTo(1.52, org.assertj.core.data.Offset.offset(0.01));
+    }
+
     @Test
     void bloqueaElCierreSiFaltanCamposObligatorios_RN05() {
         CerrarTurnoCommand comando = new CerrarTurnoCommand("lote-1", null, 3, "jadeo", 10, null, "operario");

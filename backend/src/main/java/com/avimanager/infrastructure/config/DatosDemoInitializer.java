@@ -44,15 +44,21 @@ import java.time.LocalTime;
  *                                    operario4 (mismo galpon: ve el turno de operario3 pero no puede cerrarlo)
  *   galpon-4 (vacio, 1000 aves)   -> sin lote ni workers: para probar el registro de lotes (F-11)
  *
- * Pesajes (F-07): el Galpon 1 se peso la semana pasada dentro de rango y el
- * Galpon 3 se peso hoy 6% por debajo del estandar, pendiente de que el
- * Zootecnista apruebe el ajuste de racion.
+ * Historial (F-04): las dos semanas anteriores tienen un cierre aprobado por
+ * dia en cada galpon, con el consumo de su racion, y cada lote tiene dos
+ * pesajes semanales (cada uno con la edad que tenia el lote ese dia). Asi la
+ * conversion alimenticia muestra valores reales (alrededor de 1.6 a 2.2).
+ *
+ * Pesajes (F-07): el Galpon 1 no se ha pesado esta semana (el operario puede
+ * hacerlo en la demo) y el Galpon 3 se peso hoy 6% por debajo del estandar,
+ * pendiente de que el Zootecnista apruebe el ajuste de racion.
  *
  * Mantenimiento (F-08): el Galpon 2 tiene una rotura de malla reportada hace
  * 14 horas, con la orden ya vencida (RN-04) y el galpon EN_RIESGO_SANITARIO.
  *
- * Bodega (F-03): el alimento esta en 50.3% de la capacidad, asi que un cierre de
- * turno normal (45 kg) lo deja bajo el 50% y emite la alerta de Stock Critico.
+ * Bodega (F-03): el alimento esta en 50.05% de la capacidad, asi que cualquier
+ * cierre de turno con mas de 5 kg lo deja bajo el 50% y emite la alerta de
+ * Stock Critico.
  * La viruta para cama ya esta en Stock Critico (40%).
  *
  * Tambien crea un usuario de demo por cada rol (F-09). La contraseña de cada
@@ -119,19 +125,30 @@ public class DatosDemoInitializer implements CommandLineRunner {
 
         LocalDate hoy = LocalDate.now(clock);
         LocalDate ayer = hoy.minusDays(1);
-        turnoCerrado("demo-t1", "operario", "lote-1", "galpon-1", ayer, 500, 5);
-        turnoBloqueado("demo-t2", "operario2", "lote-2", "galpon-2", ayer, 800, 16);
-        turnoCerrado("demo-t3", "operario3", "lote-3", "galpon-3", ayer, 600, 3);
+
+        // Dos semanas de cierres aprobados (hace 13 dias hasta antier) con el consumo de cada racion.
+        historial("lote-1", "galpon-1", "operario", hoy, 7.2);
+        historial("lote-2", "galpon-2", "operario2", hoy, 18.2);
+        historial("lote-3", "galpon-3", "operario3", hoy, 6.2);
+
+        turnoCerrado("demo-t1", "operario", "lote-1", "galpon-1", ayer, 500, 5, 7.4);
+        turnoBloqueado("demo-t2", "operario2", "lote-2", "galpon-2", ayer, 800, 16, 18.0);
+        turnoCerrado("demo-t3", "operario3", "lote-3", "galpon-3", ayer, 600, 3, 6.5);
         turnoRepository.guardar(new Turno("demo-t4", "operario3", "lote-3", "galpon-3", hoy, hoy.atTime(6, 30)));
 
-        // Semana 3: estandar 190 g, 186 g es -2.1% (en rango). Semana 2: estandar 120 g, 113 g es -5.8%.
-        pesaje("demo-p1", "lote-1", 186, 30, "operario", hoy.minusDays(7).atTime(7, 0));
-        pesaje("demo-p2", "lote-3", 113, 30, "operario3", hoy.atTime(7, 15));
+        // Cada pesaje con la edad que tenia el lote ese dia (estandar: semana 1 = 70 g, 2 = 120 g,
+        // 3 = 190 g, 4 = 270 g). Todos en rango, salvo el de hoy del Galpon 3: 113 g frente a 120 g es -5.8%.
+        pesaje("demo-p1a", "lote-1", 2, 71, 30, "operario", hoy.minusDays(14).atTime(7, 0));
+        pesaje("demo-p1", "lote-1", 1, 118, 30, "operario", hoy.minusDays(7).atTime(7, 0));
+        pesaje("demo-p3a", "lote-2", 2, 188, 30, "operario2", hoy.minusDays(14).atTime(7, 10));
+        pesaje("demo-p3", "lote-2", 1, 266, 30, "operario2", hoy.minusDays(7).atTime(7, 10));
+        pesaje("demo-p2a", "lote-3", 1, 69, 30, "operario3", hoy.minusDays(7).atTime(7, 15));
+        pesaje("demo-p2", "lote-3", 0, 113, 30, "operario3", hoy.atTime(7, 15));
 
         ordenVencida("demo-o1", "galpon-2", "operario2", LocalDateTime.now(clock).minusHours(14));
 
         inventarioRepository.guardar(new Insumo("insumo-alimento", "Alimento balanceado", TipoInsumo.ALIMENTO,
-                "kg", 10000, 5030));
+                "kg", 10000, 5005));
         inventarioRepository.guardar(new Insumo("insumo-vacuna", "Vacuna Newcastle", TipoInsumo.SANIDAD,
                 "dosis", 2000, 1500));
         inventarioRepository.guardar(new Insumo("insumo-viruta", "Viruta para cama", TipoInsumo.MATERIAL_CAMA,
@@ -147,10 +164,34 @@ public class DatosDemoInitializer implements CommandLineRunner {
         galponRepository.guardar(galpon);
     }
 
-    private void pesaje(String id, String loteId, double pesoPromedio, int muestra, String worker,
+    /**
+     * Pesaje de hace {@code semanasAtras} semanas. El lote guarda solo su edad actual,
+     * asi que el pesaje se registra sobre una copia con la edad que tenia ese dia.
+     */
+    private void pesaje(String id, String loteId, int semanasAtras, double pesoPromedio, int muestra, String worker,
                         LocalDateTime fechaHora) {
         Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
-        pesajeRepository.guardar(new Pesaje(id, lote, pesoPromedio, muestra, worker, fechaHora));
+        Lote ese = new Lote(lote.getId(), lote.getGalponId(), lote.getPoblacionInicial(), lote.getPoblacionActual(),
+                lote.getEdadSemanas() - semanasAtras, lote.getEstado());
+        pesajeRepository.guardar(new Pesaje(id, ese, pesoPromedio, muestra, worker, fechaHora));
+    }
+
+    /** Un cierre aprobado por dia, de hace 13 dias hasta antier, sin bajas y con el consumo de la racion. */
+    private void historial(String loteId, String galponId, String worker, LocalDate hoy, double consumoKg) {
+        for (int dias = 13; dias >= 2; dias--) {
+            LocalDate fecha = hoy.minusDays(dias);
+            String id = "hist-" + loteId + "-" + fecha;
+            Turno turno = new Turno(id, worker, loteId, galponId, fecha, fecha.atTime(6, 0));
+            double consumo = Math.round((consumoKg + (dias % 3) * 0.3) * 10.0) / 10.0;
+            ReporteDiario reporte = new ReporteDiario("reporte-" + id, loteId, fecha, consumo, 0, null, 12,
+                    "Sin novedades");
+            reporte.registrarPorcentajeMortalidad(0.0);
+            reporte.consolidar();
+            reporteDiarioRepository.guardar(reporte);
+            turno.cerrar(reporte, fecha.atTime(14, 0));
+            turno.aprobar("admin", fecha.atTime(18, 0));
+            turnoRepository.guardar(turno);
+        }
     }
 
     private void crearUsuario(String username, String nombre, Rol rol, String galponAsignadoId) {
@@ -159,9 +200,9 @@ public class DatosDemoInitializer implements CommandLineRunner {
     }
 
     private void turnoCerrado(String id, String worker, String loteId, String galponId, LocalDate fecha,
-                              int poblacion, int bajas) {
+                              int poblacion, int bajas, double consumoKg) {
         Turno turno = new Turno(id, worker, loteId, galponId, fecha, fecha.atTime(6, 0));
-        ReporteDiario reporte = reporte(id, loteId, fecha, poblacion, bajas);
+        ReporteDiario reporte = reporte(id, loteId, fecha, poblacion, bajas, consumoKg);
         reporte.consolidar();
         reporteDiarioRepository.guardar(reporte);
         turno.cerrar(reporte, fecha.atTime(LocalTime.of(14, 15)));
@@ -173,9 +214,9 @@ public class DatosDemoInitializer implements CommandLineRunner {
     }
 
     private void turnoBloqueado(String id, String worker, String loteId, String galponId, LocalDate fecha,
-                                int poblacion, int bajas) {
+                                int poblacion, int bajas, double consumoKg) {
         Turno turno = new Turno(id, worker, loteId, galponId, fecha, fecha.atTime(6, 10));
-        ReporteDiario reporte = reporte(id, loteId, fecha, poblacion, bajas);
+        ReporteDiario reporte = reporte(id, loteId, fecha, poblacion, bajas, consumoKg);
         reporte.bloquearPorAlertaSanitaria(reporte.getPorcentajeMortalidad());
         reporteDiarioRepository.guardar(reporte);
         AlertaSanitaria alerta = new AlertaSanitaria("alerta-" + id, loteId, reporte.getId(),
@@ -185,8 +226,9 @@ public class DatosDemoInitializer implements CommandLineRunner {
         turnoRepository.guardar(turno);
     }
 
-    private ReporteDiario reporte(String turnoId, String loteId, LocalDate fecha, int poblacion, int bajas) {
-        ReporteDiario reporte = new ReporteDiario("reporte-" + turnoId, loteId, fecha, 45.0, bajas,
+    private ReporteDiario reporte(String turnoId, String loteId, LocalDate fecha, int poblacion, int bajas,
+                                  double consumoKg) {
+        ReporteDiario reporte = new ReporteDiario("reporte-" + turnoId, loteId, fecha, consumoKg, bajas,
                 "jadeo", 12, null);
         reporte.registrarPorcentajeMortalidad(PoliticaMortalidad.calcularPorcentaje(bajas, poblacion));
         return reporte;

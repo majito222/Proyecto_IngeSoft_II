@@ -1,7 +1,7 @@
 package com.avimanager.domain.service;
 
 import com.avimanager.domain.event.DanoReportado;
-import com.avimanager.domain.exception.GalponAjenoException;
+import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.GalponNoEncontradoException;
 import com.avimanager.domain.model.Galpon;
 import com.avimanager.domain.model.OrdenMantenimiento;
@@ -28,8 +28,8 @@ import java.util.List;
  * con su prioridad y el plazo de 12 horas (RN-04). Despues publica
  * DanoReportado (patron Observer) para avisar al Tecnico y al Administrador.
  *
- * Un worker solo reporta en su galpon asignado; quien no tiene galpon asignado
- * (el Administrador) puede reportar en cualquiera.
+ * El dano lo reporta el worker que lo detecta en su galpon asignado (Student
+ * Book, proceso Mantenimiento): el galpon no se elige, sale de su asignacion.
  */
 public class ReportarDanoService implements ReportarDanoUseCase {
 
@@ -56,11 +56,10 @@ public class ReportarDanoService implements ReportarDanoUseCase {
     @Override
     public List<GalponParaReporte> galponesParaReporte(String solicitanteUsername) {
         String asignado = galponAsignadoDe(solicitanteUsername);
-        List<Galpon> galpones = asignado == null
-                ? galponRepository.listarTodos()
-                : galponRepository.buscarPorId(asignado).map(List::of).orElse(List.of());
-        return galpones.stream()
-                .sorted(Comparator.comparing(Galpon::getId))
+        if (asignado == null) {
+            return List.of();
+        }
+        return galponRepository.buscarPorId(asignado).stream()
                 .map(g -> new GalponParaReporte(g.getId(), g.getNombre(), g.getEstado(),
                         ordenRepository.listarPendientesPorGalpon(g.getId()).stream()
                                 .sorted(Comparator.comparing(OrdenMantenimiento::getFechaLimite))
@@ -71,15 +70,9 @@ public class ReportarDanoService implements ReportarDanoUseCase {
 
     @Override
     public ResumenOrden reportar(ReportarDanoCommand comando) {
-        String asignado = galponAsignadoDe(comando.getSolicitanteUsername());
-        String galponId = comando.getGalponId() == null || comando.getGalponId().isBlank()
-                ? asignado
-                : comando.getGalponId();
+        String galponId = galponAsignadoDe(comando.getSolicitanteUsername());
         if (galponId == null) {
-            throw new IllegalArgumentException("Indica el galpón donde está el daño");
-        }
-        if (asignado != null && !asignado.equals(galponId)) {
-            throw new GalponAjenoException("Solo puedes reportar daños en tu galpón asignado.");
+            throw new GalponNoAsignadoException("Tu usuario no tiene un galpón asignado, así que no puede reportar daños.");
         }
         Galpon galpon = galponRepository.buscarPorId(galponId)
                 .orElseThrow(() -> new GalponNoEncontradoException(galponId));

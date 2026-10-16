@@ -1,8 +1,7 @@
 package com.avimanager.domain.service;
 
 import com.avimanager.domain.event.DanoReportado;
-import com.avimanager.domain.exception.GalponAjenoException;
-import com.avimanager.domain.exception.GalponNoEncontradoException;
+import com.avimanager.domain.exception.GalponNoAsignadoException;
 import com.avimanager.domain.exception.OrdenNoEncontradaException;
 import com.avimanager.domain.model.EstadoGalpon;
 import com.avimanager.domain.model.EstadoOrden;
@@ -62,8 +61,8 @@ class MantenimientoServiceTest {
         usuarios.guardar(new Usuario("u3", "tecnico", "Tomás Técnico", "x", Rol.TECNICO, true));
     }
 
-    private ResumenOrden reportarMalla(String usuario, String galponId) {
-        return reportar.reportar(new ReportarDanoCommand(usuario, galponId, "ROTURA_MALLA", "Malla rota"));
+    private ResumenOrden reportarMalla(String usuario) {
+        return reportar.reportar(new ReportarDanoCommand(usuario, "ROTURA_MALLA", "Malla rota"));
     }
 
     private Galpon galpon(String id) {
@@ -72,7 +71,7 @@ class MantenimientoServiceTest {
 
     @Test
     void reportarUnDanoPoneElGalponEnRiesgoYCreaLaOrden_F081() {
-        ResumenOrden resumen = reportarMalla("operario", null);
+        ResumenOrden resumen = reportarMalla("operario");
 
         assertThat(galpon("galpon-1").getEstado()).isEqualTo(EstadoGalpon.EN_RIESGO_SANITARIO);
         assertThat(ordenes.guardadas).hasSize(1);
@@ -86,47 +85,44 @@ class MantenimientoServiceTest {
     }
 
     @Test
-    void elOperarioSoloReportaEnSuGalpon() {
-        assertThatThrownBy(() -> reportarMalla("operario", "galpon-2")).isInstanceOf(GalponAjenoException.class);
+    void elDanoSeReportaEnElGalponAsignadoDelWorker() {
+        reportarMalla("operario");
+
+        assertThat(galpon("galpon-1").getEstado()).isEqualTo(EstadoGalpon.EN_RIESGO_SANITARIO);
         assertThat(galpon("galpon-2").getEstado()).isEqualTo(EstadoGalpon.ACTIVO);
+    }
+
+    @Test
+    void sinGalponAsignadoNoSeReportanDanos() {
+        assertThatThrownBy(() -> reportarMalla("admin")).isInstanceOf(GalponNoAsignadoException.class);
         assertThat(ordenes.guardadas).isEmpty();
     }
 
     @Test
-    void elAdministradorReportaEnCualquierGalponPeroDebeIndicarlo() {
-        reportarMalla("admin", "galpon-2");
-        assertThat(galpon("galpon-2").getEstado()).isEqualTo(EstadoGalpon.EN_RIESGO_SANITARIO);
-
-        assertThatThrownBy(() -> reportarMalla("admin", null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> reportarMalla("admin", "no-existe")).isInstanceOf(GalponNoEncontradoException.class);
-    }
-
-    @Test
     void unTipoDeDanoInvalidoSeRechaza() {
-        assertThatThrownBy(() -> reportar.reportar(new ReportarDanoCommand("operario", null, "INUNDACION", "Agua")))
+        assertThatThrownBy(() -> reportar.reportar(new ReportarDanoCommand("operario", "INUNDACION", "Agua")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("INUNDACION");
-        assertThatThrownBy(() -> reportar.reportar(new ReportarDanoCommand("operario", null, null, "Agua")))
+        assertThatThrownBy(() -> reportar.reportar(new ReportarDanoCommand("operario", null, "Agua")))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(galpon("galpon-1").getEstado()).isEqualTo(EstadoGalpon.ACTIVO);
     }
 
     @Test
-    void elWorkerVeSoloSuGalponYElAdministradorTodos() {
-        reportarMalla("operario", null);
+    void elWorkerVeSuGalponConLasOrdenesPendientes() {
+        reportarMalla("operario");
 
         List<GalponParaReporte> delOperario = reportar.galponesParaReporte("operario");
         assertThat(delOperario).extracting(GalponParaReporte::getGalponId).containsExactly("galpon-1");
         assertThat(delOperario.get(0).getEstado()).isEqualTo(EstadoGalpon.EN_RIESGO_SANITARIO);
         assertThat(delOperario.get(0).getOrdenesPendientes()).hasSize(1);
 
-        assertThat(reportar.galponesParaReporte("admin")).extracting(GalponParaReporte::getGalponId)
-                .containsExactly("galpon-1", "galpon-2");
+        assertThat(reportar.galponesParaReporte("admin")).as("sin galpon asignado").isEmpty();
     }
 
     @Test
     void certificarLaReparacionDevuelveElGalponAActivo_F083() {
-        String id = reportarMalla("operario", null).getOrden().getId();
+        String id = reportarMalla("operario").getOrden().getId();
 
         atender.iniciarReparacion(id, "tecnico");
         ResumenOrden certificada = atender.certificar(id, "tecnico", "Se cambió la malla");
@@ -139,8 +135,8 @@ class MantenimientoServiceTest {
 
     @Test
     void conDosDanosElGalponVuelveAActivoSoloAlCertificarElUltimo() {
-        String primera = reportarMalla("operario", null).getOrden().getId();
-        String segunda = reportar.reportar(new ReportarDanoCommand("operario", null, "DANO_TECHO", "Gotera"))
+        String primera = reportarMalla("operario").getOrden().getId();
+        String segunda = reportar.reportar(new ReportarDanoCommand("operario", "DANO_TECHO", "Gotera"))
                 .getOrden().getId();
 
         atender.certificar(primera, "tecnico", "Malla cambiada");

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { certificarReparacion, iniciarReparacion, listarOrdenes } from "../api/mantenimiento";
+import { useSesion } from "../auth/SesionContext";
 import EstadoOrden, { formatearPlazo } from "../components/EstadoOrden";
 import { formatearFecha, formatearHora } from "../components/EstadoTurno";
 
@@ -7,9 +8,12 @@ import { formatearFecha, formatearHora } from "../components/EstadoTurno";
  * F-08.3: bandeja del técnico. Las órdenes pendientes muestran las horas que
  * quedan del plazo de 12 h (RN-04) y las vencidas se marcan en rojo. Al
  * certificar la reparación, el galpón vuelve a "Activo" si no tiene otras
- * órdenes pendientes.
+ * órdenes pendientes. El administrador ve la bandeja en solo lectura para
+ * supervisar los plazos: iniciar y certificar es del técnico (RN-04).
  */
 export default function OrdenesMantenimientoPage() {
+  const { tienePermiso } = useSesion();
+  const puedeAtender = tienePermiso("ATENDER_ORDENES_MANTENIMIENTO");
   const [respuesta, setRespuesta] = useState(null); // { ordenes } | { error }
 
   const cargar = useCallback(async () => {
@@ -70,13 +74,13 @@ export default function OrdenesMantenimientoPage() {
       )}
 
       {ordenes.map((orden) => (
-        <TarjetaOrden key={orden.id} orden={orden} onActualizada={cargar} />
+        <TarjetaOrden key={orden.id} orden={orden} puedeAtender={puedeAtender} onActualizada={cargar} />
       ))}
     </div>
   );
 }
 
-function TarjetaOrden({ orden, onActualizada }) {
+function TarjetaOrden({ orden, puedeAtender, onActualizada }) {
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
@@ -142,7 +146,15 @@ function TarjetaOrden({ orden, onActualizada }) {
         </dl>
       )}
 
-      {!certificada && (
+      {!certificada && !puedeAtender && (
+        <p className="alerta__aviso">
+          {orden.estado === "EN_REPARACION"
+            ? `En reparación por ${orden.tecnicoNombre} desde las ${formatearHora(orden.fechaInicioReparacion)}.`
+            : "Pendiente de que el técnico inicie la reparación."}
+        </p>
+      )}
+
+      {!certificada && puedeAtender && (
         <form className="alerta__formulario" onSubmit={manejarCertificacion}>
           {orden.estado === "ABIERTA" ? (
             <button

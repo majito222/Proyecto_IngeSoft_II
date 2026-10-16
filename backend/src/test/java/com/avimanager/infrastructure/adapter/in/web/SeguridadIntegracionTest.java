@@ -117,13 +117,13 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al cerrar turno → HTTP {1}")
     @CsvSource({
             "operario,    404",
-            "admin,       404",
+            "admin,       403",
             "veterinario, 403",
             "dueno,       403",
             "zootecnista, 403",
             "tecnico,     403",
     })
-    void soloLosRolesConPermisoCERRAR_TURNOPuedenCerrarTurno(String username, int statusEsperado) throws Exception {
+    void soloElOperarioCierraTurno(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/lotes/lote-inexistente/turnos/cierre")
                         .header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON).content(TURNO_NORMAL))
@@ -160,11 +160,14 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$.turnoDeHoy.responsableNombre").value("Óscar Operario"));
     }
 
+    /** Segregacion de funciones: el administrador supervisa los turnos, no inicia ni cierra los suyos. */
     @Test
-    void sinGalponAsignadoNoHayTurnoQueConsultar_F10() throws Exception {
-        mvc.perform(get("/api/turnos/actual").header("Authorization", "Bearer " + token("admin")))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value(org.hamcrest.Matchers.containsString("galpón asignado")));
+    void elAdministradorNoIniciaNiConsultaTurnosPropios_F10() throws Exception {
+        String admin = token("admin");
+        mvc.perform(get("/api/turnos/actual").header("Authorization", "Bearer " + admin))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/turnos/inicio").header("Authorization", "Bearer " + admin))
+                .andExpect(status().isForbidden());
     }
 
     /** Matriz rol → dashboard de cierres pendientes (permiso VER_TURNOS, solo Administrador). */
@@ -248,13 +251,13 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al atender una alerta -> HTTP {1}")
     @CsvSource({
             "veterinario, 404",
-            "admin,       404",
+            "admin,       403",
             "dueno,       403",
             "operario,    403",
             "zootecnista, 403",
             "tecnico,     403",
     })
-    void soloVeterinarioYAdministradorAtiendenAlertas_F025(String username, int statusEsperado) throws Exception {
+    void soloElVeterinarioAtiendeAlertas_F025(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/alertas/no-existe/atencion").header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"diagnostico\":\"x\",\"tratamiento\":\"y\"}"))
@@ -285,13 +288,13 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al registrar un pesaje -> HTTP {1}")
     @CsvSource({
             "operario,    400",
-            "admin,       400",
+            "admin,       403",
             "zootecnista, 403",
             "veterinario, 403",
             "dueno,       403",
             "tecnico,     403",
     })
-    void soloOperarioYAdministradorRegistranPesajes_F07(String username, int statusEsperado) throws Exception {
+    void soloElOperarioRegistraPesajes_F07(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/pesajes").header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().is(statusEsperado));
@@ -301,15 +304,30 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al revisar un pesaje -> HTTP {1}")
     @CsvSource({
             "zootecnista, 404",
-            "admin,       404",
+            "admin,       403",
             "operario,    403",
             "veterinario, 403",
             "dueno,       403",
             "tecnico,     403",
     })
-    void soloZootecnistaYAdministradorRevisanPesajes_F07(String username, int statusEsperado) throws Exception {
+    void soloElZootecnistaRevisaPesajes_F07(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/pesajes/no-existe/revision").header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"aprobarAjuste\":true}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Matriz rol -> ver los pesajes (permiso VER_PESAJES): el administrador los supervisa en solo lectura. */
+    @ParameterizedTest(name = "{0} al ver los pesajes -> HTTP {1}")
+    @CsvSource({
+            "zootecnista, 200",
+            "admin,       200",
+            "operario,    403",
+            "veterinario, 403",
+            "dueno,       403",
+            "tecnico,     403",
+    })
+    void zootecnistaYAdministradorVenLosPesajes_F07(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/pesajes").header("Authorization", "Bearer " + token(username)))
                 .andExpect(status().is(statusEsperado));
     }
 
@@ -373,13 +391,13 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al reportar un dano -> HTTP {1}")
     @CsvSource({
             "operario,    400",
-            "admin,       400",
+            "admin,       403",
             "tecnico,     403",
             "veterinario, 403",
             "dueno,       403",
             "zootecnista, 403",
     })
-    void soloOperarioYAdministradorReportanDanos_F08(String username, int statusEsperado) throws Exception {
+    void soloElOperarioReportaDanos_F08(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/danos").header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().is(statusEsperado));
@@ -389,16 +407,31 @@ class SeguridadIntegracionTest {
     @ParameterizedTest(name = "{0} al certificar una orden -> HTTP {1}")
     @CsvSource({
             "tecnico,     404",
-            "admin,       404",
+            "admin,       403",
             "operario,    403",
             "veterinario, 403",
             "dueno,       403",
             "zootecnista, 403",
     })
-    void soloTecnicoYAdministradorAtiendenOrdenes_F08(String username, int statusEsperado) throws Exception {
+    void soloElTecnicoAtiendeOrdenes_F08(String username, int statusEsperado) throws Exception {
         mvc.perform(post("/api/ordenes-mantenimiento/no-existe/certificacion")
                         .header("Authorization", "Bearer " + token(username))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"notaReparacion\":\"x\"}"))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Matriz rol -> ver la bandeja de ordenes (permiso VER_ORDENES_MANTENIMIENTO): el administrador supervisa los plazos. */
+    @ParameterizedTest(name = "{0} al ver las ordenes -> HTTP {1}")
+    @CsvSource({
+            "tecnico,     200",
+            "admin,       200",
+            "operario,    403",
+            "veterinario, 403",
+            "dueno,       403",
+            "zootecnista, 403",
+    })
+    void tecnicoYAdministradorVenLasOrdenes_F08(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/ordenes-mantenimiento").header("Authorization", "Bearer " + token(username)))
                 .andExpect(status().is(statusEsperado));
     }
 
@@ -413,12 +446,15 @@ class SeguridadIntegracionTest {
                 .andExpect(jsonPath("$[0].vencida").value(true));
     }
 
+    /** El galpon del dano sale de la asignacion del operario: aunque envie otro, se registra en el suyo. */
     @Test
-    void unOperarioNoReportaDanosEnUnGalponAjeno_F082() throws Exception {
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elDanoSeRegistraEnElGalponAsignadoDelOperario_F082() throws Exception {
         mvc.perform(post("/api/danos").header("Authorization", "Bearer " + token("operario"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"galponId\":\"galpon-3\",\"tipoDano\":\"DANO_TECHO\",\"descripcion\":\"Gotera\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.galponNombre").value("Galpón 1"));
     }
 
     /** Flujo completo de F-08: reportar, el galpon queda en riesgo, el tecnico certifica y vuelve a ACTIVO. */
@@ -668,7 +704,7 @@ class SeguridadIntegracionTest {
                         .contentType(MediaType.APPLICATION_JSON).content(TURNO_NORMAL))
                 .andExpect(status().isOk());
 
-        // El demo arranca en 5.030 kg (50.3%): tras 45 kg queda bajo el 50%, en Stock Critico.
+        // El demo arranca en 5.005 kg (50.05%): tras 45 kg queda bajo el 50%, en Stock Critico.
         mvc.perform(get("/api/inventario").header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].stock").value(stockAntes - 45.0))
