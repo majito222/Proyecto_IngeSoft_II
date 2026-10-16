@@ -737,6 +737,95 @@ class SeguridadIntegracionTest {
                 .andExpect(status().isNotFound());
     }
 
+    // --- F-04: KPIs, aprobacion de reportes y consolidacion del dia ---
+
+    /** Matriz rol -> dashboard de KPIs (permiso VER_DASHBOARD_KPI: Dueño y Administrador). */
+    @ParameterizedTest(name = "{0} al ver los KPIs -> HTTP {1}")
+    @CsvSource({
+            "admin,       200",
+            "dueno,       200",
+            "operario,    403",
+            "veterinario, 403",
+            "zootecnista, 403",
+            "tecnico,     403",
+    })
+    void soloDuenoYAdministradorVenLosKpis_F04(String username, int statusEsperado) throws Exception {
+        mvc.perform(get("/api/kpis").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+        mvc.perform(get("/api/kpis/consolidados").header("Authorization", "Bearer " + token(username)))
+                .andExpect(status().is(statusEsperado));
+    }
+
+    /** Matriz rol -> aprobar reportes y consolidar (permiso APROBAR_REPORTES: solo el Administrador). */
+    @ParameterizedTest(name = "{0} al aprobar o consolidar -> HTTP 403")
+    @CsvSource({"operario", "veterinario", "dueno", "zootecnista", "tecnico"})
+    void soloElAdministradorApruebaYConsolida_F04(String username) throws Exception {
+        String token = token(username);
+        mvc.perform(post("/api/turnos/demo-t1/aprobacion").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"2026-01-01\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void losKpisTraenLasTresEstrategiasPorCadaLoteActivo_F04() throws Exception {
+        mvc.perform(get("/api/kpis").header("Authorization", "Bearer " + token("dueno")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].galponNombre").value("Galpón 1"))
+                .andExpect(jsonPath("$[0].kpis.length()").value(3))
+                .andExpect(jsonPath("$[0].kpis[0].clave").value("CONVERSION_ALIMENTICIA"))
+                .andExpect(jsonPath("$[0].kpis[1].clave").value("MORTALIDAD_ACUMULADA"))
+                .andExpect(jsonPath("$[0].kpis[2].clave").value("PRODUCCION_TOTAL"));
+    }
+
+    @Test
+    void unTurnoAbiertoNoSeApruebaResponde409_F04() throws Exception {
+        // demo-t4: turno de hoy de operario3, todavia ABIERTO
+        mvc.perform(post("/api/turnos/demo-t4/aprobacion").header("Authorization", "Bearer " + token("admin")))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/turnos/no-existe/aprobacion").header("Authorization", "Bearer " + token("admin")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void elAdministradorApruebaYNoConsolidaMientrasQuedenTurnosSinAprobar_F04() throws Exception {
+        String admin = token("admin");
+        String fechaDemoT1 = json.readTree(mvc.perform(post("/api/turnos/demo-t1/aprobacion")
+                                .header("Authorization", "Bearer " + admin))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.estado").value("APROBADO"))
+                        .andExpect(jsonPath("$.aprobadoPor").value("admin"))
+                        .andReturn().getResponse().getContentAsString())
+                .get("fecha").asText();
+
+        // Ese dia (ayer en los datos de demo) demo-t2 sigue bloqueado por alerta y demo-t3 sin aprobar.
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"" + fechaDemoT1 + "\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value(org.hamcrest.Matchers.containsString("sin aprobar")));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void unDiaSinTurnosPendientesSeConsolidaUnaSolaVez_F04() throws Exception {
+        String admin = token("admin");
+        String hace10Dias = java.time.LocalDate.now().minusDays(10).toString();
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"" + hace10Dias + "\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.consolidadoPorNombre").value("Ana Administradora"))
+                .andExpect(jsonPath("$.lotes.length()").value(3));
+        mvc.perform(post("/api/kpis/consolidacion").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"fecha\":\"" + hace10Dias + "\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/kpis/consolidados").header("Authorization", "Bearer " + token("dueno")))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].fecha").value(hace10Dias));
+    }
+
     private String token(String username) throws Exception {
         String respuesta = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"contrasena\":\"" + username + "123\"}"))

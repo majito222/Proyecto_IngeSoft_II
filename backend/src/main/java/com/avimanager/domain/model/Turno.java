@@ -23,6 +23,8 @@ public class Turno {
     private String reporteDiarioId;
     private Double porcentajeMortalidad;
     private String alertaSanitariaId;
+    private String aprobadoPor;
+    private LocalDateTime fechaAprobacion;
 
     public Turno(String id, String workerUsername, String loteId, String galponId,
                  LocalDate fecha, LocalDateTime horaInicio) {
@@ -56,6 +58,21 @@ public class Turno {
     public void cerrarConAlertaAtendida(LocalDateTime ahora) {
         this.estado = estado.cerrarConAlertaAtendida();
         this.horaCierre = ahora;
+    }
+
+    /**
+     * F-04.3: el administrador aprueba el reporte del turno. El estado (patron
+     * State) solo lo admite desde CERRADO o CERRADO_CON_ALERTA; queda a nombre
+     * de quien aprueba.
+     */
+    public void aprobar(String administradorUsername, LocalDateTime ahora) {
+        this.estado = estado.aprobar();
+        this.aprobadoPor = administradorUsername;
+        this.fechaAprobacion = ahora;
+    }
+
+    public boolean estaAprobado() {
+        return estado == EstadoTurno.APROBADO;
     }
 
     public boolean esResponsable(String username) {
@@ -108,5 +125,13 @@ public class Turno {
 
     public String getAlertaSanitariaId() {
         return alertaSanitariaId;
+    }
+
+    public String getAprobadoPor() {
+        return aprobadoPor;
+    }
+
+    public LocalDateTime getFechaAprobacion() {
+        return fechaAprobacion;
     }
 }

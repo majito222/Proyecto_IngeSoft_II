@@ -3,6 +3,7 @@ import {
   IconCierre,
   IconDano,
   IconInventario,
+  IconKpis,
   IconLotes,
   IconOrdenes,
   IconPesaje,
@@ -15,6 +16,7 @@ import {
 // El orden importa: cada usuario entra a la primera opción que puede ver.
 export const ITEMS_MENU = [
   { to: "/turnos", label: "Panel de turnos", icon: IconTurnos, permiso: "VER_TURNOS" },
+  { to: "/indicadores", label: "Indicadores", icon: IconKpis, permiso: "VER_DASHBOARD_KPI" },
   { to: "/cierre-turno", label: "Cierre de turno", icon: IconCierre, permiso: "CERRAR_TURNO" },
   { to: "/pesaje", label: "Pesaje semanal", icon: IconPesaje, permiso: "REGISTRAR_PESO" },
   { to: "/reportar-dano", label: "Reportar daño", icon: IconDano, permiso: "REPORTAR_DANOS" },

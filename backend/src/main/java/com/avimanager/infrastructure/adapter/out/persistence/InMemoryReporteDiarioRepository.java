@@ -5,6 +5,7 @@ import com.avimanager.domain.port.out.ReporteDiarioRepositoryPort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +24,11 @@ public class InMemoryReporteDiarioRepository implements ReporteDiarioRepositoryP
     @Override
     public Optional<ReporteDiario> buscarPorId(String reporteId) {
         return Optional.ofNullable(almacen.get(reporteId));
+    }
+
+    @Override
+    public List<ReporteDiario> listarPorLote(String loteId) {
+        return almacen.values().stream().filter(r -> r.getLoteId().equals(loteId)).toList();
     }
 
     public Collection<ReporteDiario> listarTodos() {

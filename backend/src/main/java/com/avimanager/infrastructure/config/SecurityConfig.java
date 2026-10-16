@@ -97,6 +97,11 @@ public class SecurityConfig {
                         // F-05: solo el Administrador registra Actas de Ajuste (RN-08)
                         .requestMatchers(HttpMethod.POST, "/api/inventario/*/ajustes")
                             .hasAuthority(Permiso.AJUSTAR_INVENTARIO.name())
+                        // F-04: KPIs, aprobacion de reportes y consolidacion del dia
+                        .requestMatchers(HttpMethod.GET, "/api/kpis", "/api/kpis/consolidados")
+                            .hasAuthority(Permiso.VER_DASHBOARD_KPI.name())
+                        .requestMatchers(HttpMethod.POST, "/api/turnos/*/aprobacion", "/api/kpis/consolidacion")
+                            .hasAuthority(Permiso.APROBAR_REPORTES.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorPermisos()))

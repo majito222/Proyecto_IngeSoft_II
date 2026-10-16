@@ -18,6 +18,9 @@ import com.avimanager.domain.exception.PesajeYaRegistradoException;
 import com.avimanager.domain.exception.PesajeYaRevisadoException;
 import com.avimanager.domain.exception.TurnoAjenoException;
 import com.avimanager.domain.exception.TurnoNoDisponibleException;
+import com.avimanager.domain.exception.TurnoNoEncontradoException;
+import com.avimanager.domain.exception.TurnosSinAprobarException;
+import com.avimanager.domain.exception.ReporteYaConsolidadoException;
 import com.avimanager.domain.exception.TurnoYaIniciadoException;
 import com.avimanager.domain.exception.UsuarioNoEncontradoException;
 import com.avimanager.domain.exception.UsuarioNoEsWorkerException;
@@ -38,7 +41,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({LoteNoEncontradoException.class, PesajeNoEncontradoException.class,
-            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class, InsumoNoEncontradoException.class, OrdenNoEncontradaException.class})
+            GalponNoEncontradoException.class, UsuarioNoEncontradoException.class, InsumoNoEncontradoException.class,
+            TurnoNoEncontradoException.class, OrdenNoEncontradaException.class})
     public ResponseEntity<Map<String, String>> manejarNoEncontrado(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
     }
@@ -55,6 +59,12 @@ public class GlobalExceptionHandler {
             LoteYaFinalizadoException.class, UsuarioNoEsWorkerException.class, WorkerConTurnoAbiertoException.class,
             OrdenNoDisponibleException.class})
     public ResponseEntity<Map<String, String>> manejarConflictoDeGalpon(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
+    }
+
+    /** F-04: no se consolida con turnos sin aprobar ni dos veces la misma fecha. */
+    @ExceptionHandler({TurnosSinAprobarException.class, ReporteYaConsolidadoException.class})
+    public ResponseEntity<Map<String, String>> manejarConflictoDeConsolidacion(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje", ex.getMessage()));
     }
 

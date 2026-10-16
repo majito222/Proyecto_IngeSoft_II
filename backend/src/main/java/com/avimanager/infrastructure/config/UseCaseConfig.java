@@ -63,10 +63,22 @@ import com.avimanager.domain.service.cierre.ReglaCierreTurno;
 import com.avimanager.domain.service.cierre.ReglaConsolidacion;
 import com.avimanager.domain.service.cierre.ReglaDescontarInventario;
 import com.avimanager.domain.service.cierre.ReglaMortalidad;
+import com.avimanager.domain.port.in.AprobarReporteUseCase;
+import com.avimanager.domain.port.in.ConsolidarReporteDiarioUseCase;
+import com.avimanager.domain.port.in.ConsultarKpisUseCase;
+import com.avimanager.domain.port.out.ReporteConsolidadoRepositoryPort;
+import com.avimanager.domain.service.AprobarReporteService;
+import com.avimanager.domain.service.ConsolidarReporteDiarioService;
+import com.avimanager.domain.service.ConsultarKpisService;
+import com.avimanager.domain.service.kpi.CalculadorKpisLotes;
+import com.avimanager.domain.service.kpi.ConversionAlimenticiaKpi;
+import com.avimanager.domain.service.kpi.MortalidadAcumuladaKpi;
+import com.avimanager.domain.service.kpi.ProduccionTotalKpi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
+import java.util.List;
 
 /**
  * Punto unico donde Spring conecta los puertos (interfaces del dominio) con
@@ -275,6 +287,43 @@ public class UseCaseConfig {
     @Bean
     public ConsultarActasAjusteUseCase consultarActasAjusteUseCase(ActaAjusteRepositoryPort actaAjusteRepository) {
         return new ConsultarActasAjusteService(actaAjusteRepository);
+    }
+
+    /**
+     * F-04: los KPIs del reporte diario (patron Strategy). Cada CalculadoraKpi es
+     * una estrategia; para agregar un KPI se agrega su clase a esta lista.
+     */
+    @Bean
+    public CalculadorKpisLotes calculadorKpisLotes(LoteRepositoryPort loteRepository,
+                                                   GalponRepositoryPort galponRepository,
+                                                   ReporteDiarioRepositoryPort reporteDiarioRepository,
+                                                   PesajeRepositoryPort pesajeRepository) {
+        return new CalculadorKpisLotes(
+                List.of(new ConversionAlimenticiaKpi(), new MortalidadAcumuladaKpi(), new ProduccionTotalKpi()),
+                loteRepository, galponRepository, reporteDiarioRepository, pesajeRepository);
+    }
+
+    @Bean
+    public ConsultarKpisUseCase consultarKpisUseCase(CalculadorKpisLotes calculadorKpisLotes,
+                                                     ReporteConsolidadoRepositoryPort reporteConsolidadoRepository) {
+        return new ConsultarKpisService(calculadorKpisLotes, reporteConsolidadoRepository);
+    }
+
+    @Bean
+    public ConsolidarReporteDiarioUseCase consolidarReporteDiarioUseCase(
+            TurnoRepositoryPort turnoRepository,
+            ReporteConsolidadoRepositoryPort reporteConsolidadoRepository,
+            UsuarioRepositoryPort usuarioRepository,
+            CalculadorKpisLotes calculadorKpisLotes,
+            Clock clock) {
+        return new ConsolidarReporteDiarioService(turnoRepository, reporteConsolidadoRepository, usuarioRepository,
+                calculadorKpisLotes, clock);
+    }
+
+    /** F-04.3: aprobar el reporte de un turno (transicion aprobar del patron State de EstadoTurno). */
+    @Bean
+    public AprobarReporteUseCase aprobarReporteUseCase(TurnoRepositoryPort turnoRepository, Clock clock) {
+        return new AprobarReporteService(turnoRepository, clock);
     }
 
     @Bean

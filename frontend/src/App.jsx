@@ -7,6 +7,7 @@ import InicioPage from "./pages/InicioPage";
 import CierreTurnoPage from "./pages/CierreTurnoPage";
 import LotesPage from "./pages/LotesPage";
 import InventarioPage from "./pages/InventarioPage";
+import IndicadoresPage from "./pages/IndicadoresPage";
 import AlertasPage from "./pages/AlertasPage";
 import TurnosPage from "./pages/TurnosPage";
 import RacionPage from "./pages/RacionPage";
@@ -107,6 +108,14 @@ export default function App() {
               element={
                 <RutaProtegida permiso="VER_INVENTARIO">
                   <InventarioPage />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="indicadores"
+              element={
+                <RutaProtegida permiso="VER_DASHBOARD_KPI">
+                  <IndicadoresPage />
                 </RutaProtegida>
               }
             />

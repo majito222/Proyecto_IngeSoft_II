@@ -23,3 +23,8 @@ export function listarTurnos({ fecha } = {}) {
   const query = params.toString();
   return apiFetch(`/turnos${query ? `?${query}` : ""}`);
 }
+
+// F-04.3: el Administrador aprueba el reporte de un turno CERRADO o CERRADO_CON_ALERTA.
+export function aprobarReporte(turnoId) {
+  return apiFetch(`/turnos/${encodeURIComponent(turnoId)}/aprobacion`, { method: "POST" });
+}
