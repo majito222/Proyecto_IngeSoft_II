@@ -4,6 +4,23 @@ Taller de refactorización y cierre de arquitectura · Ingeniería de Software I
 
 ## 1. Contexto
 
+### 1.1 El proyecto
+
+**AviManager** es un sistema web para gestionar la operación diaria de una granja de gallinas ponedoras. Reemplaza
+las planillas de papel con las que hoy se registran el consumo de alimento, la mortalidad y la producción de cada
+galpón, y automatiza las reglas de negocio que antes dependían de que alguien revisara los números a mano:
+
+- bloquear el cierre del turno y avisar al veterinario cuando la mortalidad del día supera el 1,5 % (RN-01, RN-07);
+- descontar el alimento de la bodega y avisar cuando baja del 50 % de su capacidad (RN-03);
+- calcular la ración diaria según la edad y el peso de las aves (F-06, RN-02);
+- controlar que los daños de infraestructura se reparen en 12 horas (RN-04);
+- aprobar los reportes, cuadrar la bodega y consolidar los indicadores del día (F-04, RN-06).
+
+Lo usan seis roles (operario, administrador, veterinario, zootecnista, técnico de mantenimiento y dueño), y cada uno
+solo puede ejecutar las acciones de su permiso. El proyecto se basa en el Student Book *Software Modeling* del curso
+y en el Plan de Requisitos del equipo (trazabilidad BR → StR → SyR → SWR). Al momento del taller tenía 11
+funcionalidades implementadas y 349 pruebas automatizadas.
+
 | | |
 |---|---|
 | **Equipo** | Santiago Ramírez Bernal · María José Valencia Díaz |
@@ -13,9 +30,76 @@ Taller de refactorización y cierre de arquitectura · Ingeniería de Software I
 | **Funcionalidad analizada** | Cierre de turno operativo con bloqueo por alerta sanitaria y atención de la alerta |
 | **Requisitos relacionados** | F-01 (cierre de turno), F-02 (alerta sanitaria), F-02.5 (atención de la alerta), F-03 (descuento de alimento), F-10 (turnos) · RN-01, RN-03, RN-05, RN-07 |
 
+### 1.2 La funcionalidad analizada
+
+Cada día, el operario asignado a un galpón abre un turno sobre el lote de aves y, al terminar la jornada, lo cierra
+registrando el reporte diario: kilos de alimento consumidos, aves muertas (bajas) y su causa probable, y bandejas de
+huevos producidas. Con esos datos el sistema aplica, en orden, las reglas del cierre:
+
+1. **Campos obligatorios (RN-05).** Si falta un dato, el turno no se cierra y se indican los campos faltantes.
+2. **Valores válidos.** No se aceptan cantidades negativas ni más bajas que aves vivas.
+3. **Descuento de alimento (F-03, RN-03).** Lo consumido se descuenta de la bodega; si el stock cruza el 50 %, se avisa
+   al administrador y al dueño.
+4. **Mortalidad (RN-07, RN-01).** Se calcula `bajas de hoy / población del día × 100`. Si supera el 1,5 %, el cierre
+   se bloquea: el turno queda *bloqueado por alerta sanitaria*, el lote en observación y se avisa al veterinario y al
+   administrador.
+5. **Consolidación.** Si nada detuvo el cierre, el reporte se consolida, las bajas se descuentan de la población del
+   lote y el turno queda *cerrado*.
+
+Cuando el cierre quedó bloqueado, el **veterinario atiende la alerta (F-02.5)** registrando diagnóstico y tratamiento.
+En ese momento el turno pasa a *cerrado con alerta*, el reporte se consolida y las bajas se descuentan del lote; si el
+veterinario lo indica, el lote sale de observación.
+
+La población del lote que resulta de estos dos caminos es la base de la mortalidad del día siguiente (RN-07), de la
+ración diaria (F-06) y de los indicadores (F-04). Por eso un error al descontar las bajas se propaga a casi todo el
+sistema.
+
 **Por qué esta funcionalidad.** Es una transacción de negocio que, en dos casos de uso, modifica cinco entidades
 (`Turno`, `ReporteDiario`, `Lote`, `AlertaSanitaria`, `Insumo`) y publica eventos de dominio. Además está cubierta por
 pruebas unitarias y de integración, lo que permite verificar que una refactorización conserva el comportamiento.
+
+### 1.3 Justificación técnica de la intervención
+
+Se intervinieron **H-01** (regla duplicada) y **H-02** (invariante no protegida) en un solo cambio (detalle en la
+sección 5).
+
+**Por qué estos hallazgos y no otros**
+
+- **Riesgo demostrado, no supuesto.** H-01 ya causó un defecto real: el commit `3e1d4b4` (PR #12) corrigió que una de
+  las copias de la regla, la de los datos de demostración, no descontaba las bajas. Los otros hallazgos son riesgos
+  potenciales o deuda sin efecto observable (sección 4).
+- **Impacto alto.** La población del lote alimenta RN-07, la ración y los KPIs (sección 1.2).
+- **Esfuerzo acotado y verificable.** El cambio toca cuatro archivos de producción, y las pruebas existentes ya
+  verificaban la población del lote en ambos caminos (sección 6), así que se podía demostrar la conservación del
+  comportamiento sin escribirlas de cero.
+- **H-02 sale casi gratis.** El método que resuelve H-01 es el lugar natural para validar la invariante.
+
+**Por qué la solución es mover la regla a la entidad `Lote`**
+
+- **Experto en información (GRASP).** `Lote` es dueño de la población; quien descuenta las bajas debe ser quien conoce
+  y protege ese dato.
+- **Invariantes en la entidad (modelo de dominio rico).** Una regla que vive en un servicio solo se cumple si cada
+  caso de uso se acuerda de aplicarla. Dentro de la entidad se cumple siempre, llegue el cambio por el caso de uso que
+  llegue, y sin importar qué casos de uso se agreguen después.
+- **Una sola fuente de verdad (DRY).** Si la regla cambia, se modifica en un único método.
+- **Encapsulamiento verificable.** `registrarBajas` pasó a ser privado. Desde entonces el compilador impide descontar
+  bajas sin consolidar un reporte, y la regla deja de ser solo una convención entre programadores.
+- **Coherente con la arquitectura hexagonal.** El cambio queda dentro de `domain/model` y no introduce dependencias
+  hacia la infraestructura; los servicios siguen coordinando y la entidad decide.
+
+**Alternativas evaluadas y descartadas**
+
+| Alternativa | Por qué se descartó |
+|---|---|
+| Dejar el código como estaba y documentarlo | El riesgo ya se había materializado una vez; documentarlo no impide que se repita. |
+| Un servicio de dominio nuevo (por ejemplo `ConsolidadorDeReportes`) | Saca la regla de los casos de uso, pero no protege la invariante: `Lote.registrarBajas` seguiría siendo público y se podría saltar. |
+| Poner el método en `ReporteDiario` (`reporte.consolidarEn(lote)`) | Obligaría a `ReporteDiario` a modificar el estado de `Lote`, que es otra entidad; quien cambia la población debe ser el propio lote. |
+| Hacer privado también `ReporteDiario.consolidar()` | Habría obligado a modificar dos pruebas existentes, que son la evidencia de que el comportamiento se conserva. Se dejó como deuda pendiente (sección 7). |
+
+**Por qué `IllegalStateException`.** Por los caminos actuales la invariante no se puede violar, porque
+`ReglaValoresValidos` la revisa al cerrar el turno. Si llegara a ocurrir, sería un error interno del sistema y no un
+dato inválido del usuario, así que debe responder 500 y no 400. Se usó a propósito para no repetir el problema que
+describe H-04.
 
 ## 2. Arquitectura real
 
