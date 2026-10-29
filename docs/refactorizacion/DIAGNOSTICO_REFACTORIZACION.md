@@ -428,10 +428,11 @@ problemas antes de entregar?*
 
 ## 8. Git
 
-| Paso | Commit |
-|---|---|
-| Diagnóstico (`docs: registrar diagnostico tecnico`) | `033e839` |
-| Intervención (`refactor: ...`) | pendiente |
-| Verificación (`docs: documentar verificacion de refactorizacion`) | pendiente |
+| Paso | Commit | Contenido |
+|---|---|---|
+| 1. Diagnóstico | [`033e839`](https://github.com/majito222/Proyecto_IngeSoft_II/commit/033e839) | Este informe con las secciones 1 a 4 y la evidencia de pruebas antes (`evidencias/pruebas_antes.txt`) |
+| 2. Intervención | [`c7939ef`](https://github.com/majito222/Proyecto_IngeSoft_II/commit/c7939ef) `refactor: centralizar la consolidacion del reporte y el descuento de bajas en Lote` | Código de la intervención y `LoteTest`. Incluyó también las secciones 5 a 7 del informe y las evidencias después y de mutación |
+| 3. Verificación | `docs: documentar verificacion de refactorizacion` (este commit) | Registro de los hashes y cierre de la trazabilidad |
 
-Rama de trabajo: `refactor/consolidacion-reporte-lote`.
+Rama de trabajo: `refactor/consolidacion-reporte-lote`. Para ver el cambio de código de la intervención sin la
+documentación: `git show c7939ef -- backend`.
