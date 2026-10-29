@@ -52,7 +52,27 @@ public class Lote {
         return new LoteBuilder();
     }
 
-    public void registrarBajas(int cantidadBajas) {
+    /**
+     * Consolida el reporte diario del lote y descuenta sus bajas. Es la unica forma de
+     * descontar bajas: un reporte consolidado siempre las desconto (cierre normal,
+     * atencion de la alerta sanitaria y datos de demo usan este metodo).
+     * La invariante 0 <= bajas <= aves vivas se protege aqui; los caminos validos ya la
+     * cumplen (ReglaValoresValidos la revisa al cerrar), asi que violarla es un error interno.
+     */
+    public void consolidarReporte(ReporteDiario reporte) {
+        if (!id.equals(reporte.getLoteId())) {
+            throw new IllegalStateException("El reporte " + reporte.getId() + " no es del lote " + id);
+        }
+        Integer bajas = reporte.getCantidadBajas();
+        if (bajas == null || bajas < 0 || bajas > poblacionActual) {
+            throw new IllegalStateException("Las bajas del reporte (" + bajas + ") deben estar entre 0 y las "
+                    + poblacionActual + " aves vivas del lote " + id);
+        }
+        reporte.consolidar();
+        registrarBajas(bajas);
+    }
+
+    private void registrarBajas(int cantidadBajas) {
         this.poblacionActual = this.poblacionActual - cantidadBajas;
     }
 

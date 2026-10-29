@@ -1,0 +1,38 @@
+Evidencia de pruebas: DESPUÉS de la refactorización (H-01 + H-02)
+Fecha: 2026-10-29 16:32 | Rama: refactor/consolidacion-reporte-lote | Commit base: 033e839
+Comando: mvn test (carpeta backend/)
+Resultado: 356 pruebas, 0 fallos/errores/omitidas, 32 clases
+
+Clase de prueba                                                        Pruebas Fallos
+domain.model.AlertaSanitariaTest                                             4      0
+domain.model.EstadoTurnoTest                                                 5      0
+domain.model.GalponLoteBuilderTest                                          11      0
+domain.model.InsumoTest                                                      4      0
+domain.model.LoteTest                                                        7      0
+domain.model.OrdenMantenimientoTest                                          8      0
+domain.model.PesajeTest                                                     11      0
+domain.model.RolTest                                                         7      0
+domain.model.TurnoTest                                                       6      0
+domain.policy.PoliticaMortalidadTest                                         5      0
+domain.policy.PoliticaPesoTest                                               5      0
+domain.policy.PoliticaStockTest                                              4      0
+domain.service.AjustarInventarioServiceTest                                  8      0
+domain.service.AlertasServiceTest                                            7      0
+domain.service.CalcularRacionServiceTest                                     7      0
+domain.service.CerrarTurnoServiceTest                                        9      0
+domain.service.ConsolidacionReporteDiarioTest                               11      0
+domain.service.DescontarInventarioTest                                       9      0
+domain.service.GalponesServiceTest                                          15      0
+domain.service.IniciarSesionServiceTest                                      5      0
+domain.service.KpisALaFechaTest                                              3      0
+domain.service.MantenimientoServiceTest                                      9      0
+domain.service.PesajesServiceTest                                           11      0
+domain.service.TurnosServiceTest                                             5      0
+domain.service.cierre.ReglaCierreTurnoTest                                   5      0
+domain.service.inventario.ComandoAjusteInventarioTest                        4      0
+domain.service.kpi.CalculadorasKpiTest                                       7      0
+domain.service.mantenimiento.FabricaOrdenMantenimientoTest                   6      0
+domain.service.racion.RacionAjustadaPorPesoTest                              5      0
+domain.service.racion.RacionTablaEstandarTest                                9      0
+infrastructure.adapter.in.web.SeguridadIntegracionTest                     141      0
+infrastructure.adapter.out.event.PublicadorEventosEnMemoriaTest              3      0

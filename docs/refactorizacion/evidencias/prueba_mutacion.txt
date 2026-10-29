@@ -1,0 +1,19 @@
+Prueba de mutación: ¿las pruebas detectan si se rompe la regla de H-01?
+Cambio inyectado temporalmente en Lote.consolidarReporte:
+    registrarBajas(bajas);   →   // MUTACION: registrarBajas(bajas);
+(el reporte se consolida pero las bajas NO se descuentan del lote)
+Comando: mvn test -Dtest=LoteTest,CerrarTurnoServiceTest,AlertasServiceTest
+
+Resultado con la mutación:
+  Tests run: 7, Failures: 2, Errors: 0, Skipped: 0, -- domain.model.LoteTest
+  Tests run: 7, Failures: 2, Errors: 0, Skipped: 0, -- domain.service.AlertasServiceTest
+  Tests run: 9, Failures: 1, Errors: 0, Skipped: 0, -- domain.service.CerrarTurnoServiceTest
+
+Pruebas que fallaron:
+  LoteTest.consolidarElReporteDescuentaSusBajasDelLote_H01
+  LoteTest.sePuedenDarDeBajaTodasLasAvesVivas
+  AlertasServiceTest.atenderLaAlertaCierraElTurnoConAlertaYConsolidaElReporte
+  AlertasServiceTest.unaAlertaAtendidaNoSePuedeVolverAAtenderNiDescuentaDosVeces
+  CerrarTurnoServiceTest.cierraElTurnoCuandoLaMortalidadEstaDentroDelUmbral
+
+Después de restaurar el código: las 3 clases vuelven a pasar (y la suite completa: 356 pruebas, 0 fallos).

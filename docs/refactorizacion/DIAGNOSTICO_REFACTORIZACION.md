@@ -70,7 +70,7 @@ comprobados e hipótesis.
 |---|---|
 | **Tipo** | Deuda técnica con riesgo de inconsistencia |
 | **Ubicación** | `domain/service/cierre/ReglaConsolidacion.java`, `evaluar`, L34-40 · `domain/service/AtenderAlertaSanitariaService.java`, `atender`, L77-78 · `infrastructure/config/DatosDemoInitializer.java`, `turnoCerrado`, L211-217 |
-| **Estado** | Seleccionado |
+| **Estado** | Implementado y verificado (sección 6) |
 
 **Evidencia**
 ```java
@@ -113,7 +113,7 @@ copias pasan a usarlo.
 |---|---|
 | **Tipo** | Riesgo arquitectónico (invariante fuera de la entidad) |
 | **Ubicación** | `domain/model/Lote.java`, `registrarBajas`, L55-57 · invariante en `domain/service/cierre/ReglaValoresValidos.java`, `evaluar`, L29-33 |
-| **Estado** | Seleccionado (se resuelve con la misma intervención que H-01) |
+| **Estado** | Implementado y verificado (misma intervención que H-01) |
 
 **Evidencia**
 ```java
@@ -267,37 +267,76 @@ Escala 1 (bajo) a 3 (alto). El esfuerzo alto resta prioridad.
 
 ## 5. Intervención
 
-**Cambio elegido:** mover la regla de H-01 al dominio y proteger la invariante de H-02.
+**Cambio realizado:** la regla de H-01 pasa al dominio y la invariante de H-02 se protege en la entidad. Las
+pruebas existentes no se modificaron.
 
 **Diseño antes**
 
 ```
-ReglaConsolidacion ─────────┐
-AtenderAlertaSanitariaSvc ──┼─→ reporte.consolidar()  +  lote.registrarBajas(n)   (cada uno por su cuenta)
-DatosDemoInitializer ───────┘                              (sin validar n)
+ReglaConsolidacion ──────────┐
+AtenderAlertaSanitariaSvc ───┤
+DatosDemoInitializer ────────┼─→ reporte.consolidar()  +  lote.registrarBajas(n)   (cada uno por su cuenta,
+  (turnoCerrado e historial) ┘                                                     sin validar n)
 ```
 
-**Diseño después (propuesto)**
+**Diseño después**
 
 ```
-ReglaConsolidacion ─────────┐
-AtenderAlertaSanitariaSvc ──┼─→ lote.consolidarReporte(reporte)
-DatosDemoInitializer ───────┘       ├ verifica que el reporte sea de este lote
-                                    ├ valida 0 ≤ bajas ≤ aves vivas
+ReglaConsolidacion ──────────┐
+AtenderAlertaSanitariaSvc ───┤
+DatosDemoInitializer ────────┼─→ lote.consolidarReporte(reporte)
+  (turnoCerrado e historial) ┘      ├ el reporte es de este lote          (si no: IllegalStateException)
+                                    ├ 0 ≤ bajas ≤ aves vivas              (si no: IllegalStateException)
                                     ├ reporte.consolidar()
-                                    └ descuenta las bajas
+                                    └ registrarBajas(bajas)   ← ahora privado: la única vía es consolidar
 ```
 
-**Archivos que se prevé modificar:** `Lote.java`, `ReglaConsolidacion.java`, `AtenderAlertaSanitariaService.java`,
-`DatosDemoInitializer.java` y pruebas nuevas del dominio.
+**Núcleo del cambio** (`domain/model/Lote.java`)
 
-**Clasificación del cambio.** Refactorización que conserva el comportamiento para todo dato válido. La validación
-nueva es un endurecimiento: solo rechaza casos que los caminos actuales ya impiden; no corrige un defecto observable.
+```java
+public void consolidarReporte(ReporteDiario reporte) {
+    if (!id.equals(reporte.getLoteId())) {
+        throw new IllegalStateException("El reporte " + reporte.getId() + " no es del lote " + id);
+    }
+    Integer bajas = reporte.getCantidadBajas();
+    if (bajas == null || bajas < 0 || bajas > poblacionActual) {
+        throw new IllegalStateException("Las bajas del reporte (" + bajas + ") deben estar entre 0 y las "
+                + poblacionActual + " aves vivas del lote " + id);
+    }
+    reporte.consolidar();
+    registrarBajas(bajas);
+}
+
+private void registrarBajas(int cantidadBajas) { ... }   // antes era público
+```
+
+**Archivos afectados**
+
+| Archivo | Cambio |
+|---|---|
+| `backend/src/main/java/com/avimanager/domain/model/Lote.java` | Nuevo `consolidarReporte(ReporteDiario)`; `registrarBajas` pasa a privado |
+| `backend/src/main/java/com/avimanager/domain/service/cierre/ReglaConsolidacion.java` | `evaluar` usa `lote.consolidarReporte(reporte)` |
+| `backend/src/main/java/com/avimanager/domain/service/AtenderAlertaSanitariaService.java` | `atender` usa `lote.consolidarReporte(reporte)` |
+| `backend/src/main/java/com/avimanager/infrastructure/config/DatosDemoInitializer.java` | `turnoCerrado` e `historial` usan `lote.consolidarReporte(reporte)` |
+| `backend/src/test/java/com/avimanager/domain/model/LoteTest.java` | Nueva: 7 pruebas del método |
+
+Durante la intervención apareció una **cuarta copia** que el diagnóstico no había contado:
+`DatosDemoInitializer.historial` consolidaba reportes sin pasar por el lote. Esos reportes tienen 0 bajas, así que
+no producía un error, pero también se migró para que todo el código de producción use un único camino.
+
+**Decisiones de diseño**
+
+- **`IllegalStateException` y no `IllegalArgumentException`.** Por los caminos actuales es imposible violar la
+  invariante (`ReglaValoresValidos` ya la revisa al cerrar). Si ocurre, es un error interno y debe responder 500, no
+  400. Esto evita repetir el problema descrito en H-04.
+- **`ReporteDiario.consolidar()` sigue siendo público.** Hacerlo privado obligaría a modificar dos *fixtures* de
+  prueba que lo llaman directamente (`ConsolidacionReporteDiarioTest` L93 y `KpisALaFechaTest` L57). Se prefirió no
+  tocar pruebas existentes, porque son la evidencia de conservación del comportamiento. Queda como deuda (sección 7).
+
+**Clasificación del cambio.** Refactorización que conserva el comportamiento observable para todo dato válido, más un
+endurecimiento de la invariante. No corrige un defecto observable hoy.
 
 ## 6. Verificación
-
-**Antes de la intervención:** `mvn test` en `backend/` → **349 pruebas, 0 fallos** en 31 clases
-([evidencias/pruebas_antes.txt](evidencias/pruebas_antes.txt)).
 
 **Pruebas que protegen la funcionalidad**
 
@@ -314,25 +353,84 @@ nueva es un endurecimiento: solo rechaza casos que los caminos actuales ya impid
 
 | Prueba | Línea | Qué comprueba |
 |---|---|---|
-| `CerrarTurnoServiceTest` | L118 | Cierre normal: el lote pasa de 500 a 495 aves (las bajas se descuentan) |
-| `CerrarTurnoServiceTest` | L141 | Cierre bloqueado por alerta: las bajas **no** se descuentan todavía |
-| `AlertasServiceTest` | L98, L122 | Al atender la alerta, el lote pasa de 800 a 784 aves |
-| `AlertasServiceTest` | L131 | Una alerta ya atendida no descuenta dos veces (sigue en 800) |
+| `CerrarTurnoServiceTest.cierraElTurnoCuandoLaMortalidadEstaDentroDelUmbral` | L118 | Cierre normal: el lote pasa de 500 a 495 aves |
+| `CerrarTurnoServiceTest.bloqueaElCierreYGeneraAlertaSanitariaCuandoSuperaElUmbral_RN01_RN07` | L141 | Cierre bloqueado: las bajas **no** se descuentan todavía |
+| `AlertasServiceTest.atenderLaAlertaCierraElTurnoConAlertaYConsolidaElReporte` | L98 | Al atender la alerta, el lote pasa de 800 a 784 aves |
+| `AlertasServiceTest.unaAlertaAtendidaNoSePuedeVolverAAtenderNiDescuentaDosVeces` | L122 | Un segundo intento de atención no descuenta dos veces (sigue en 784) |
+| `AlertasServiceTest.sinDiagnosticoNoSeTocaNada` | L131 | Una atención inválida no descuenta nada (sigue en 800) |
 
 La copia de `DatosDemoInitializer` queda cubierta indirectamente: `SeguridadIntegracionTest` L228-229 espera una
 ración de 10,1 kg para el Galpón 3, calculada con 597 aves (600 menos las 3 bajas del cierre de demo de ayer).
 
-**Después de la intervención:** pendiente.
+**Resultados antes y después** (`mvn test` en `backend/`)
+
+| | Antes (commit `a9e951e`) | Después (sobre `033e839`) |
+|---|---|---|
+| Pruebas | 349 | 356 (las mismas 349 + 7 de `LoteTest`) |
+| Fallos, errores u omitidas | 0 | 0 |
+| Clases de prueba | 31 | 32 |
+| Evidencia | [evidencias/pruebas_antes.txt](evidencias/pruebas_antes.txt) | [evidencias/pruebas_despues.txt](evidencias/pruebas_despues.txt) |
+
+La comparación clase por clase de ambos archivos solo difiere en la línea nueva de `LoteTest`: las 31 clases que ya
+existían conservan el mismo número de pruebas y siguen en verde.
+
+**Prueba de mutación** ([evidencias/prueba_mutacion.txt](evidencias/prueba_mutacion.txt)). Para comprobar que la red
+de seguridad detecta un error real, se comentó de forma temporal `registrarBajas(bajas)` dentro de
+`consolidarReporte`. El reporte seguía consolidándose, pero las bajas ya no se descontaban. Resultado: **5 pruebas
+fallaron en 3 clases**:
+
+- `LoteTest`: 2 (`consolidarElReporteDescuentaSusBajasDelLote_H01`, `sePuedenDarDeBajaTodasLasAvesVivas`).
+- `AlertasServiceTest`: 2 (`atenderLaAlertaCierraElTurnoConAlertaYConsolidaElReporte`, `unaAlertaAtendidaNoSePuedeVolverAAtenderNiDescuentaDosVeces`).
+- `CerrarTurnoServiceTest`: 1 (`cierraElTurnoCuandoLaMortalidadEstaDentroDelUmbral`).
+
+Al restaurar el código, las tres clases y la suite completa volvieron a pasar.
+
+**Limitaciones de la verificación**
+
+- El frontend no se modificó y no se probó manualmente: el contrato HTTP (respuestas y códigos) no cambió.
+- La copia de la demo se verifica de forma indirecta (ración del Galpón 3), no con una prueba propia.
+- La prueba de mutación cubrió un solo tipo de error (no descontar las bajas). No se mutó la validación nueva; esa
+  validación la cubren directamente las pruebas de rechazo de `LoteTest`.
 
 ## 7. Cierre
 
-Pendiente de completar tras la intervención.
+**Lecciones**
+
+- La duplicación más peligrosa no es la de código parecido, sino la de una **regla del negocio** repetida. Aquí ya
+  había causado un defecto real (commit `3e1d4b4`).
+- Las invariantes deben vivir en la entidad: así se cumplen sin importar por qué caso de uso se llegue.
+- Las pruebas que verifican el **estado del negocio** (la población del lote) y no solo el código HTTP fueron las
+  que dieron confianza para refactorizar. La prueba de mutación mostró que de verdad detectan un error.
+- La IA sirvió de apoyo, pero la verificación manual fue necesaria. En la versión del diagnóstico (commit `033e839`)
+  se describieron mal dos aserciones de `AlertasServiceTest` (L122 y L131), y se corrigieron en esta versión. Además,
+  la cuarta copia (`historial`) solo apareció al revisar todos los usos durante la intervención.
+
+**Deuda técnica pendiente**
+
+| ID | Pendiente |
+|---|---|
+| H-01 (residuo) | `ReporteDiario.consolidar()` sigue público: un reporte todavía podría consolidarse sin descontar sus bajas. Para cerrarlo hay que ajustar dos *fixtures* de prueba y dejar el método con visibilidad de paquete. |
+| H-03 | Comparaciones seguras ante `null` en `ReglaValoresValidos` y una prueba que fije el orden de la cadena. Es la siguiente intervención recomendada (esfuerzo 1). |
+| H-04 | Excepción de dominio propia para datos inválidos en lugar de `IllegalArgumentException`. |
+| H-05 | Inyectar `Resumidor*` y `GalponAsignadoResolver` en los 10 servicios desde `UseCaseConfig`. |
+| H-06 | Unidad de trabajo o transacción al introducir una base de datos. |
+
+**Vínculo con el proceso de desarrollo.** Pregunta de cierre del taller: *¿qué práctica habría permitido detectar estos
+problemas antes de entregar?*
+
+- **Revisión de código en los pull requests con una lista de inspección.** El PR #12 corrigió el síntoma (la demo no
+  descontaba las bajas), pero no la causa: la regla copiada. Una revisión que preguntara *«¿esta regla ya existe en
+  otro lugar?»* y *«¿la entidad protege su invariante?»* habría detectado H-01 y H-02 en ese momento.
+- **Refactorizar como parte de la definición de terminado.** Con la regla de *«tres copias, se extrae»*, el problema
+  se habría corregido al crear la segunda copia (F-02.5).
+- **Pruebas de invariantes del dominio por entidad**, además de las pruebas por caso de uso. `Lote` no tenía una
+  clase de pruebas propia hasta esta intervención.
 
 ## 8. Git
 
 | Paso | Commit |
 |---|---|
-| Diagnóstico (`docs: registrar diagnostico tecnico`) | pendiente |
+| Diagnóstico (`docs: registrar diagnostico tecnico`) | `033e839` |
 | Intervención (`refactor: ...`) | pendiente |
 | Verificación (`docs: documentar verificacion de refactorizacion`) | pendiente |
 

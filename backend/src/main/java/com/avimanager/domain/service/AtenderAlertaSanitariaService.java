@@ -74,8 +74,7 @@ public class AtenderAlertaSanitariaService implements AtenderAlertaSanitariaUseC
         // Primero la alerta: valida los datos y que siga pendiente antes de tocar lo demas.
         alerta.atender(comando.getDiagnostico(), comando.getTratamiento(), comando.getVeterinarioUsername(), ahora);
         turno.cerrarConAlertaAtendida(ahora);
-        reporte.consolidar();
-        lote.registrarBajas(reporte.getCantidadBajas());
+        lote.consolidarReporte(reporte);
         if (comando.isLiberarLote()) {
             lote.liberarDeObservacion();
         }

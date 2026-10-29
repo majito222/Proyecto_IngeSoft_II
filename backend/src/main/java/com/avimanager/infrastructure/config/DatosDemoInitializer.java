@@ -183,6 +183,7 @@ public class DatosDemoInitializer implements CommandLineRunner {
 
     /** Un cierre aprobado por dia, de hace 13 dias hasta antier, sin bajas y con el consumo de la racion. */
     private void historial(String loteId, String galponId, String worker, LocalDate hoy, double consumoKg) {
+        Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
         for (int dias = 13; dias >= 2; dias--) {
             LocalDate fecha = hoy.minusDays(dias);
             String id = "hist-" + loteId + "-" + fecha;
@@ -191,12 +192,13 @@ public class DatosDemoInitializer implements CommandLineRunner {
             ReporteDiario reporte = new ReporteDiario("reporte-" + id, loteId, fecha, consumo, 0, null, 0,
                     "Sin novedades");
             reporte.registrarPorcentajeMortalidad(0.0);
-            reporte.consolidar();
+            lote.consolidarReporte(reporte);
             reporteDiarioRepository.guardar(reporte);
             turno.cerrar(reporte, fecha.atTime(14, 0));
             turno.aprobar("admin", fecha.atTime(18, 0));
             turnoRepository.guardar(turno);
         }
+        loteRepository.guardar(lote);
     }
 
     private void crearUsuario(String username, String nombre, Rol rol, String galponAsignadoId) {
@@ -208,14 +210,13 @@ public class DatosDemoInitializer implements CommandLineRunner {
                               int poblacion, int bajas, double consumoKg) {
         Turno turno = new Turno(id, worker, loteId, galponId, fecha, fecha.atTime(6, 0));
         ReporteDiario reporte = reporte(id, loteId, fecha, poblacion, bajas, consumoKg);
-        reporte.consolidar();
+        // Igual que ReglaConsolidacion: consolidar el reporte descuenta sus bajas del lote.
+        Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
+        lote.consolidarReporte(reporte);
+        loteRepository.guardar(lote);
         reporteDiarioRepository.guardar(reporte);
         turno.cerrar(reporte, fecha.atTime(LocalTime.of(14, 15)));
         turnoRepository.guardar(turno);
-        // Igual que ReglaConsolidacion: las bajas del cierre se descuentan del lote.
-        Lote lote = loteRepository.buscarPorId(loteId).orElseThrow();
-        lote.registrarBajas(bajas);
-        loteRepository.guardar(lote);
     }
 
     private void turnoBloqueado(String id, String worker, String loteId, String galponId, LocalDate fecha,
