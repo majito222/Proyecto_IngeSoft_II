@@ -32,11 +32,9 @@ public class ReglaConsolidacion extends ReglaCierreTurno {
     @Override
     protected Optional<CerrarTurnoResult> evaluar(ContextoCierreTurno contexto) {
         Lote lote = contexto.getLote();
-        lote.registrarBajas(contexto.getComando().getCantidadBajas());
-        loteRepository.guardar(lote);
-
         ReporteDiario reporte = contexto.reporte();
-        reporte.consolidar();
+        lote.consolidarReporte(reporte);
+        loteRepository.guardar(lote);
         reporteDiarioRepository.guardar(reporte);
 
         Turno turno = contexto.getTurno();
